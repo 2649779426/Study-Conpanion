@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { useToast } from "@/components/DemoToast";
 import { useAppStore } from "@/hooks/useAppStore";
 
 export default function PlanPage() {
   const { store, ready, chooseTemplate, setUserName } = useAppStore();
+  const { show } = useToast();
   const [name, setName] = useState("");
 
   if (!ready || !store) {
@@ -34,7 +36,10 @@ export default function PlanPage() {
           <button
             type="button"
             className="btn ghost"
-            onClick={() => setUserName(name || store.userName)}
+            onClick={() => {
+              setUserName(name || store.userName);
+              show("称呼已保存");
+            }}
           >
             保存称呼
           </button>
@@ -46,7 +51,10 @@ export default function PlanPage() {
               key={tpl.id}
               type="button"
               className="template-btn"
-              onClick={() => chooseTemplate(tpl, name || store.userName)}
+              onClick={() => {
+                chooseTemplate(tpl, name || store.userName);
+                show(`已应用模板：${tpl.name}`);
+              }}
             >
               <b>{tpl.name}</b>
               <div className="muted" style={{ marginTop: 6, fontSize: 12 }}>

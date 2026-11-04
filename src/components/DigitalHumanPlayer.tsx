@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useToast } from "@/components/DemoToast";
 import type { ScriptItem, ScriptScene } from "@/lib/types";
 import { speakText, stopSpeaking } from "@/lib/tts";
 
@@ -24,6 +25,7 @@ export function DigitalHumanPlayer({
   const [scene, setScene] = useState<ScriptScene>(defaultScene);
   const [playing, setPlaying] = useState(false);
   const [spoken, setSpoken] = useState("");
+  const { show } = useToast();
 
   const current = useMemo(() => {
     return (
@@ -45,15 +47,22 @@ export function DigitalHumanPlayer({
   useEffect(() => () => stopSpeaking(), []);
 
   function play() {
+    if (typeof window === "undefined" || !window.speechSynthesis) {
+      show("当前浏览器不支持语音播报，已展示文案演示");
+      setSpoken(text);
+      return;
+    }
     stopSpeaking();
     setSpoken(text);
     setPlaying(true);
+    show(`正在播报：${sceneLabel[scene]}`);
     speakText(text, () => setPlaying(false));
   }
 
   function stop() {
     stopSpeaking();
     setPlaying(false);
+    show("已停止播报");
   }
 
   return (

@@ -2,7 +2,10 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useMemo, useState } from "react";
+import { useAppStore } from "@/components/StoreProvider";
+import { useToast } from "@/components/DemoToast";
 
 const menu = [
   {
@@ -23,14 +26,38 @@ const menu = [
   },
 ];
 
-export function AppShell({
-  children,
-  userName = "同学",
-}: {
-  children: React.ReactNode;
-  userName?: string;
-}) {
+export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { store, ready } = useAppStore();
+  const { show } = useToast();
+  const [query, setQuery] = useState("");
+  const [panel, setPanel] = useState<"message" | "notice" | null>(null);
+
+  const userName = ready && store ? store.userName : "同学";
+
+  const searchHits = useMemo(() => {
+    if (!store || !query.trim()) return [];
+    const q = query.trim().toLowerCase();
+    const hits: { label: string; href: string }[] = [];
+
+    store.plan?.tasks.forEach((t) => {
+      if (t.title.toLowerCase().includes(q) || t.subject.toLowerCase().includes(q)) {
+        hits.push({ label: `任务：${t.title}`, href: "/checkin" });
+      }
+    });
+    store.scripts.forEach((s) => {
+      if (s.title.toLowerCase().includes(q) || s.content.toLowerCase().includes(q)) {
+        hits.push({ label: `话术：${s.title}`, href: "/admin" });
+      }
+    });
+    store.templates.forEach((t) => {
+      if (t.name.toLowerCase().includes(q)) {
+        hits.push({ label: `模板：${t.name}`, href: "/plan" });
+      }
+    });
+    return hits.slice(0, 6);
+  }, [store, query]);
 
   return (
     <div className="app-root">
@@ -65,27 +92,157 @@ export function AppShell({
 
       <div className="content">
         <header className="topbar">
-          <div className="search-box">
-            <Image src="/search.png" alt="" width={14} height={14} />
-            <input placeholder="搜索任务、话术、计划模板…" />
+          <div className="search-wrap">
+            <div className="search-box">
+              <Image src="/search.png" alt="" width={14} height={14} />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && searchHits[0]) {
+                    router.push(searchHits[0].href);
+                    show(`已跳转：${searchHits[0].label}`);
+                    setQuery("");
+                  }
+                }}
+                placeholder="搜索任务、话术、计划模板… 回车跳转"
+              />
+            </div>
+            {query.trim() ? (
+              <div className="search-dropdown">
+                {searchHits.length === 0 ? (
+                  <div className="search-empty">没有匹配结果</div>
+                ) : (
+                  searchHits.map((hit) => (
+                    <button
+                      key={hit.label}
+                      type="button"
+                      className="search-item"
+                      onClick={() => {
+                        router.push(hit.href);
+                        show(`已跳转：${hit.label}`);
+                        setQuery("");
+                      }}
+                    >
+                      {hit.label}
+                    </button>
+                  ))
+                )}
+              </div>
+            ) : null}
           </div>
+
           <div className="top-actions">
-            <button type="button" className="icon-btn" aria-label="消息">
+            <button
+              type="button"
+              className="icon-btn"
+              aria-label="消息"
+              onClick={() => setPanel(panel === "message" ? null : "message")}
+            >
               <Image src="/message.png" alt="" width={16} height={16} />
             </button>
-            <button type="button" className="icon-btn" aria-label="公告">
+            <button
+              type="button"
+              className="icon-btn"
+              aria-label="公告"
+              onClick={() => setPanel(panel === "notice" ? null : "notice")}
+            >
               <Image src="/announcement.png" alt="" width={16} height={16} />
               <span className="badge-dot">3</span>
             </button>
-            <div className="user-chip">
+            <button
+              type="button"
+              className="user-chip"
+              onClick={() => {
+                router.push("/plan");
+                show("进入学习计划 / 我的档案");
+              }}
+            >
               <div className="meta">
                 <b>{userName}</b>
                 <span>考研学员</span>
               </div>
               <Image src="/avatar.png" alt="avatar" width={36} height={36} />
-            </div>
+            </button>
           </div>
         </header>
+
+        {panel ? (
+          <div className="demo-panel">
+            <div className="section-head">
+              <h2>{panel === "message" ? "督学消息" : "提醒公告"}</h2>
+              <button
+                type="button"
+                className="linkish"
+                onClick={() => setPanel(null)}
+              >
+                关闭
+              </button>
+            </div>
+            {panel === "message" ? (
+              <>
+                <div className="announce">
+                  <b>数字人开场已就绪</b>
+                  <span className="muted" style={{ fontSize: 12 }}>
+                    点击首页「开始播报」可演示开场陪伴
+                  </span>
+                </div>
+                <div className="announce purple">
+                  <b>今日还有未完成任务</b>
+                  <span className="muted" style={{ fontSize: 12 }}>
+                    去「进度打卡」勾选并提交
+                  </span>
+                </div>
+                <div className="row" style={{ marginTop: 10 }}>
+                  <button
+                    type="button"
+                    className="btn sky"
+                    onClick={() => {
+                      setPanel(null);
+                      router.push("/");
+                    }}
+                  >
+                    去播报
+                  </button>
+                  <button
+                    type="button"
+                    className="btn ghost"
+                    onClick={() => {
+                      setPanel(null);
+                      router.push("/checkin");
+                    }}
+                  >
+                    去打卡
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                {(store?.rules ?? []).map((rule, idx) => (
+                  <button
+                    key={rule.id}
+                    type="button"
+                    className={`announce ${idx === 1 ? "purple" : idx === 2 ? "yellow" : ""}`}
+                    style={{ width: "100%", textAlign: "left", border: 0, cursor: "pointer" }}
+                    onClick={() => {
+                      setPanel(null);
+                      router.push("/admin");
+                      show(`查看规则：${rule.name}`);
+                    }}
+                  >
+                    <b>
+                      {rule.time} · {rule.name}
+                    </b>
+                    <span className="muted" style={{ fontSize: 12 }}>
+                      {rule.note}
+                    </span>
+                  </button>
+                ))}
+              </>
+            )}
+          </div>
+        ) : null}
+
         <div className="page">{children}</div>
       </div>
     </div>

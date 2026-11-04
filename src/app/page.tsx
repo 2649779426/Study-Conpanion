@@ -2,11 +2,15 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { DigitalHumanPlayer } from "@/components/DigitalHumanPlayer";
+import { useToast } from "@/components/DemoToast";
 import { useAppStore } from "@/hooks/useAppStore";
 
 export default function HomePage() {
   const { store, ready, toggleTask } = useAppStore();
+  const router = useRouter();
+  const { show } = useToast();
 
   if (!ready || !store) {
     return <div className="card">加载中…</div>;
@@ -21,28 +25,60 @@ export default function HomePage() {
   return (
     <>
       <div className="stats-row">
-        <div className="stat-card" style={{ background: "var(--lama-sky)" }}>
+        <button
+          type="button"
+          className="stat-card"
+          style={{ background: "var(--lama-sky)" }}
+          onClick={() => {
+            router.push("/checkin");
+            show("查看今日完成进度");
+          }}
+        >
           <Image className="more" src="/more.png" alt="" width={16} height={16} />
           <div className="label">今日完成</div>
           <div className="value">
             {done}/{total}
           </div>
-        </div>
-        <div className="stat-card" style={{ background: "var(--lama-purple)" }}>
+        </button>
+        <button
+          type="button"
+          className="stat-card"
+          style={{ background: "var(--lama-purple)" }}
+          onClick={() => {
+            router.push("/checkin");
+            show(`连续打卡 ${plan?.streak ?? 0} 天`);
+          }}
+        >
           <Image className="more" src="/more.png" alt="" width={16} height={16} />
           <div className="label">连续打卡</div>
           <div className="value">{plan?.streak ?? 0}</div>
-        </div>
-        <div className="stat-card" style={{ background: "var(--lama-yellow)" }}>
+        </button>
+        <button
+          type="button"
+          className="stat-card"
+          style={{ background: "var(--lama-yellow)" }}
+          onClick={() => {
+            router.push("/plan");
+            show("查看学习计划时长");
+          }}
+        >
           <Image className="more" src="/more.png" alt="" width={16} height={16} />
           <div className="label">计划分钟</div>
           <div className="value">{minutes}</div>
-        </div>
-        <div className="stat-card" style={{ background: "var(--lama-sky-light)" }}>
+        </button>
+        <button
+          type="button"
+          className="stat-card"
+          style={{ background: "var(--lama-sky-light)" }}
+          onClick={() => {
+            router.push("/checkin");
+            show(`当前完成率 ${rate}%`);
+          }}
+        >
           <Image className="more" src="/more.png" alt="" width={16} height={16} />
           <div className="label">完成率</div>
           <div className="value">{rate}%</div>
-        </div>
+        </button>
       </div>
 
       <div className="grid-main">
@@ -55,17 +91,7 @@ export default function HomePage() {
               </Link>
             </div>
             <p className="lead">
-              嗨 {store.userName}，按方案一推进：计划制定 → 执行监督 → 数字人播报陪伴。
-              UI 套用开源高星模板{" "}
-              <a
-                href="https://github.com/safak/next-dashboard-ui"
-                target="_blank"
-                rel="noreferrer"
-                style={{ textDecoration: "underline" }}
-              >
-                safak/next-dashboard-ui
-              </a>
-              （School Management Dashboard）。
+              嗨 {store.userName}，可点左侧菜单、顶部搜索/消息/公告、统计卡片、任务、数字人播报做完整演示。
             </p>
             <div className="row" style={{ marginTop: 14 }}>
               <Link className="btn" href="/checkin">
@@ -91,7 +117,10 @@ export default function HomePage() {
                   key={task.id}
                   type="button"
                   className={task.done ? "task-item done" : "task-item"}
-                  onClick={() => toggleTask(task.id)}
+                  onClick={() => {
+                    toggleTask(task.id);
+                    show(task.done ? `取消完成：${task.title}` : `已完成：${task.title}`);
+                  }}
                 >
                   <div>
                     <b>{task.title}</b>
@@ -118,12 +147,26 @@ export default function HomePage() {
           <section className="card">
             <div className="section-head">
               <h2>提醒公告</h2>
-              <span className="linkish">Rules</span>
+              <Link href="/admin" className="linkish">
+                去配置 →
+              </Link>
             </div>
             {store.rules.map((rule, idx) => (
-              <div
+              <button
                 key={rule.id}
+                type="button"
                 className={`announce ${idx === 1 ? "purple" : idx === 2 ? "yellow" : ""}`}
+                style={{
+                  width: "100%",
+                  textAlign: "left",
+                  border: 0,
+                  cursor: "pointer",
+                  display: "block",
+                }}
+                onClick={() => {
+                  router.push("/admin");
+                  show(`编辑规则：${rule.name}`);
+                }}
               >
                 <b>
                   {rule.time} · {rule.name}
@@ -131,7 +174,7 @@ export default function HomePage() {
                 <span className="muted" style={{ fontSize: 12 }}>
                   {rule.enabled ? "已启用" : "已停用"} · {rule.note}
                 </span>
-              </div>
+              </button>
             ))}
           </section>
         </div>

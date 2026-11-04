@@ -2,10 +2,12 @@
 
 import { useState } from "react";
 import { DigitalHumanPlayer } from "@/components/DigitalHumanPlayer";
+import { useToast } from "@/components/DemoToast";
 import { useAppStore } from "@/hooks/useAppStore";
 
 export default function CheckInPage() {
   const { store, ready, toggleTask, checkIn } = useAppStore();
+  const { show } = useToast();
   const [note, setNote] = useState("");
   const [message, setMessage] = useState("");
 
@@ -35,7 +37,10 @@ export default function CheckInPage() {
               key={task.id}
               type="button"
               className={task.done ? "task-item done" : "task-item"}
-              onClick={() => toggleTask(task.id)}
+              onClick={() => {
+                toggleTask(task.id);
+                show(task.done ? `取消完成：${task.title}` : `已完成：${task.title}`);
+              }}
             >
               <div>
                 <b>{task.title}</b>
@@ -66,13 +71,14 @@ export default function CheckInPage() {
             onClick={() => {
               checkIn(note.trim() || `完成 ${done}/${total}`);
               const ratio = done / Math.max(total, 1);
-              setMessage(
+              const tip =
                 ratio >= 0.75
                   ? "完成度高，已自动加练未完成项。"
                   : ratio < 0.4 && done > 0
                     ? "完成度偏低，已自动精简未完成项。"
-                    : "打卡已记录。",
-              );
+                    : "打卡已记录。";
+              setMessage(tip);
+              show(tip);
               setNote("");
             }}
           >

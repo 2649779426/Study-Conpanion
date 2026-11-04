@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useToast } from "@/components/DemoToast";
 import type { ReminderRule, ScriptItem, ScriptScene } from "@/lib/types";
 import { useAppStore } from "@/hooks/useAppStore";
 
@@ -12,6 +13,7 @@ const scenes: { value: ScriptScene; label: string }[] = [
 
 export default function AdminPage() {
   const { store, ready, saveScript, saveRule } = useAppStore();
+  const { show } = useToast();
   const [scriptForm, setScriptForm] = useState<ScriptItem | null>(null);
   const [ruleForm, setRuleForm] = useState<ReminderRule | null>(null);
   const [tip, setTip] = useState("");
@@ -96,6 +98,7 @@ export default function AdminPage() {
               updatedAt: new Date().toISOString().slice(0, 10),
             });
             setTip("话术已保存");
+            show("话术已保存");
           }}
         >
           保存话术
@@ -171,6 +174,7 @@ export default function AdminPage() {
             onClick={() => {
               saveRule(ruleForm);
               setTip("规则已保存");
+              show("规则已保存");
             }}
           >
             保存规则
@@ -182,7 +186,9 @@ export default function AdminPage() {
               const next = { ...ruleForm, enabled: !ruleForm.enabled };
               setRuleForm(next);
               saveRule(next);
-              setTip(next.enabled ? "规则已启用" : "规则已停用");
+              const text = next.enabled ? "规则已启用" : "规则已停用";
+              setTip(text);
+              show(text);
             }}
           >
             {ruleForm.enabled ? "停用" : "启用"}

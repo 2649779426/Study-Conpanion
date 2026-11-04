@@ -69,14 +69,14 @@ export function DigitalHumanPlayer({
         videoRef.current.currentTime = 0;
         await videoRef.current.play();
         setPlaying(true);
-        show(`正在播放数字人视频：${sceneLabel[scene]}`);
+        show(`正在播放：${sceneLabel[scene]}`);
         return;
       } catch {
         // fall through to TTS
       }
     }
     if (typeof window === "undefined" || !window.speechSynthesis) {
-      show("当前环境无法播放视频/语音，已展示文案");
+      show("暂无法播放，请查看下方文案");
       return;
     }
     setPlaying(true);
@@ -96,7 +96,7 @@ export function DigitalHumanPlayer({
 
   async function generateViaChanJing() {
     setGenerating(true);
-    show("正在调用蝉镜生成数字人视频…");
+    show("正在生成播报视频…");
     try {
       const res = await fetch("/api/chanjing/broadcast", {
         method: "POST",
@@ -105,12 +105,12 @@ export function DigitalHumanPlayer({
       });
       const data = await res.json();
       if (!res.ok || !data.ok || !data.video_url) {
-        throw new Error(data.error || "生成失败");
+        throw new Error(data.error || "生成失败，请稍后重试");
       }
       setVideoSrc(data.video_url);
-      show("蝉镜视频已生成（临时链接，请尽快转存）");
+      show("播报视频已生成");
     } catch (error) {
-      show(error instanceof Error ? error.message : "蝉镜生成失败");
+      show(error instanceof Error ? error.message : "生成失败，请稍后重试");
     } finally {
       setGenerating(false);
     }
@@ -120,7 +120,6 @@ export function DigitalHumanPlayer({
     <section className="card">
       <div className="section-head">
         <h2>数字人播报</h2>
-        <span className="linkish">蝉镜接入 · TTS→视频</span>
       </div>
 
       <div className="dh-box">
@@ -177,7 +176,7 @@ export function DigitalHumanPlayer({
             disabled={generating}
             onClick={generateViaChanJing}
           >
-            {generating ? "生成中…" : "蝉镜实时生成"}
+            {generating ? "生成中…" : "重新生成"}
           </button>
         </div>
       </div>

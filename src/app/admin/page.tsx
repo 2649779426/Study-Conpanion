@@ -33,7 +33,7 @@ export default function AdminPage() {
       <section className="card">
         <div className="section-head">
           <h2>话术配置</h2>
-          <span className="linkish">Scripts</span>
+          <span className="linkish">话术</span>
         </div>
         <p className="lead">配置开场、节点提醒、复盘总结播报文案。</p>
 
@@ -108,7 +108,7 @@ export default function AdminPage() {
       <section className="card yellowLight">
         <div className="section-head">
           <h2>提醒规则 / 模板</h2>
-          <span className="linkish">Admin</span>
+          <span className="linkish">配置</span>
         </div>
 
         <div className="field">

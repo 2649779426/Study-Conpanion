@@ -18,7 +18,7 @@ export default function PlanPage() {
       <section className="card">
         <div className="section-head">
           <h2>学习计划</h2>
-          <span className="linkish">Templates</span>
+          <span className="linkish">可选方案</span>
         </div>
         <p className="lead">
           选择计划模板生成今日任务。打卡进度会触发动态调整（加练 / 精简）。

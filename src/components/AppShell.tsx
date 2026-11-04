@@ -9,7 +9,7 @@ import { useToast } from "@/components/DemoToast";
 
 const menu = [
   {
-    title: "MENU",
+    title: "功能",
     items: [
       { href: "/", label: "今日督学", icon: "/home.png" },
       { href: "/plan", label: "学习计划", icon: "/lesson.png" },
@@ -18,7 +18,7 @@ const menu = [
     ],
   },
   {
-    title: "OTHER",
+    title: "更多",
     items: [
       { href: "/plan", label: "我的档案", icon: "/profile.png" },
       { href: "/admin", label: "提醒规则", icon: "/announcement.png" },
@@ -182,15 +182,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             {panel === "message" ? (
               <>
                 <div className="announce">
-                  <b>数字人开场已就绪</b>
+                  <b>今日开场提醒已准备好</b>
                   <span className="muted" style={{ fontSize: 12 }}>
-                    点击首页「开始播报」可演示开场陪伴
+                    可以开始今日学习播报
                   </span>
                 </div>
                 <div className="announce purple">
-                  <b>今日还有未完成任务</b>
+                  <b>还有任务未完成</b>
                   <span className="muted" style={{ fontSize: 12 }}>
-                    去「进度打卡」勾选并提交
+                    完成后请及时打卡
                   </span>
                 </div>
                 <div className="row" style={{ marginTop: 10 }}>

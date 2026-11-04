@@ -91,7 +91,7 @@ export default function HomePage() {
               </Link>
             </div>
             <p className="lead">
-              嗨 {store.userName}，可点左侧菜单、顶部搜索/消息/公告、统计卡片、任务、数字人播报做完整演示。
+              嗨 {store.userName}，今天按计划推进学习。完成任务后记得打卡，数字人会在关键节点给你播报提醒。
             </p>
             <div className="row" style={{ marginTop: 14 }}>
               <Link className="btn" href="/checkin">

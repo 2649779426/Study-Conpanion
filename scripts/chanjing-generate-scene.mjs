@@ -180,16 +180,33 @@ async function main() {
   });
   const token = tokenJson.data.access_token;
 
-  const audioList = await api("/list_common_audio?page=1&size=20", { token });
-  const voice = pickMeaningful(audioList.data.list || []);
+  const audioList = await api("/list_common_audio?page=1&size=50", { token });
   const dpList = await api("/list_common_dp?page=1&size=20", { token });
-  const person = pickMeaningful(dpList.data.list || []);
+  // Prefer a clearly male tutor-like avatar for 督学
+  const person =
+    (dpList.data.list || []).find((p) => p.name === "文昊") ||
+    pickMeaningful(dpList.data.list || []);
   const figure =
     (person.figures || []).find((f) => f.type && f.width && f.height) ||
     person.figures?.[0];
   if (!figure?.type || !figure.width || !figure.height) {
     throw new Error("figure incomplete");
   }
+
+  // Match voice to avatar: use bundled audio_man_id first, else same-gender male voice
+  const bundledId = person.audio_man_id;
+  const voiceFromList = (audioList.data.list || []).find((a) => a.id === bundledId);
+  const maleFallback =
+    (audioList.data.list || []).find((a) => a.name === "知心学长") ||
+    (audioList.data.list || []).find((a) => a.gender === "male" && /学长|专家|精英|男/.test(a.name || "")) ||
+    (audioList.data.list || []).find((a) => a.gender === "male");
+  const voice = bundledId
+    ? {
+        id: bundledId,
+        name: person.audio_name || voiceFromList?.name || "avatar-default-male",
+      }
+    : maleFallback;
+  if (!voice?.id) throw new Error("no matching male voice");
 
   const results = [];
   for (const [scene, text] of entries) {
@@ -201,7 +218,9 @@ async function main() {
     JSON.stringify(
       {
         voice_name: voice.name,
+        voice_id: voice.id,
         person_name: person.name,
+        person_gender: person.gender,
         figure_type: figure.type,
         results,
       },

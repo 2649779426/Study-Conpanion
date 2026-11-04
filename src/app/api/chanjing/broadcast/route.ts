@@ -7,11 +7,15 @@ export const maxDuration = 300;
 type AudioMan = {
   id: string;
   name?: string;
+  gender?: string;
 };
 
 type DigitalPerson = {
   id: string;
   name?: string;
+  gender?: string;
+  audio_man_id?: string;
+  audio_name?: string;
   figures?: Array<{
     type?: string;
     width?: number;
@@ -115,9 +119,30 @@ export async function POST(request: Request) {
       "同学你好，我是你的考研督学助手。今天按计划推进，完成后记得打卡。";
 
     const audioList = await chanjingFetch<{ list: AudioMan[] }>(
-      "/list_common_audio?page=1&size=20",
+      "/list_common_audio?page=1&size=50",
     );
-    const voice = pickMeaningful(audioList.data.list || []);
+    const dpList = await chanjingFetch<{ list: DigitalPerson[] }>(
+      "/list_common_dp?page=1&size=20",
+    );
+    const person =
+      (dpList.data.list || []).find((p) => p.name === "文昊") ||
+      pickMeaningful(dpList.data.list || []);
+    const figure =
+      (person.figures || []).find((f) => f.type && f.width && f.height) ||
+      person.figures?.[0];
+    if (!figure?.type || !figure.width || !figure.height) {
+      throw new Error("digital person figure incomplete");
+    }
+
+    const voice =
+      person.audio_man_id
+        ? {
+            id: person.audio_man_id,
+            name: person.audio_name || "avatar-default",
+          }
+        : pickMeaningful(
+            (audioList.data.list || []).filter((a) => a.gender === "male"),
+          );
 
     const createdAudio = await chanjingFetch<{ task_id: string }>(
       "/create_audio_task",
@@ -134,17 +159,6 @@ export async function POST(request: Request) {
     const audio = await waitAudio(createdAudio.data.task_id);
     const audioUrl = audio.full?.url;
     if (!audioUrl) throw new Error("missing audio url");
-
-    const dpList = await chanjingFetch<{ list: DigitalPerson[] }>(
-      "/list_common_dp?page=1&size=20",
-    );
-    const person = pickMeaningful(dpList.data.list || []);
-    const figure =
-      (person.figures || []).find((f) => f.type && f.width && f.height) ||
-      person.figures?.[0];
-    if (!figure?.type || !figure.width || !figure.height) {
-      throw new Error("digital person figure incomplete");
-    }
 
     const createdVideo = await chanjingFetch<string>("/create_video", {
       method: "POST",

@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "chanjing:accept": "node scripts/chanjing-acceptance.mjs"
+    "chanjing:accept": "node scripts/chanjing-acceptance.mjs",
+    "chanjing:scenes": "node scripts/chanjing-generate-scene.mjs"
   },
   "dependencies": {
     "next": "16.4.5",

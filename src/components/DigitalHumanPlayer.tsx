@@ -11,8 +11,10 @@ const sceneLabel: Record<ScriptScene, string> = {
   review: "复盘总结",
 };
 
-const sceneVideo: Partial<Record<ScriptScene, string>> = {
+const sceneVideo: Record<ScriptScene, string> = {
   opening: "/videos/opening.mp4",
+  reminder: "/videos/reminder.mp4",
+  review: "/videos/review.mp4",
 };
 
 type Props = {
@@ -30,7 +32,7 @@ export function DigitalHumanPlayer({
   const [playing, setPlaying] = useState(false);
   const [spoken, setSpoken] = useState("");
   const [videoSrc, setVideoSrc] = useState<string | null>(
-    sceneVideo[defaultScene] ?? "/videos/acceptance.mp4",
+    sceneVideo[defaultScene],
   );
   const [generating, setGenerating] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -56,7 +58,7 @@ export function DigitalHumanPlayer({
   useEffect(() => () => stopSpeaking(), []);
 
   useEffect(() => {
-    setVideoSrc(sceneVideo[scene] ?? "/videos/acceptance.mp4");
+    setVideoSrc(`${sceneVideo[scene]}?v=${Date.now()}`);
   }, [scene]);
 
   async function play() {

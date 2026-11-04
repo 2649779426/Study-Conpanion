@@ -27,8 +27,7 @@ export function DigitalHumanPlayer({
 
   const current = useMemo(() => {
     return (
-      scripts.find((s) => s.scene === scene) ??
-      scripts[0] ?? {
+      scripts.find((s) => s.scene === scene) ?? {
         id: "fallback",
         scene,
         title: sceneLabel[scene],
@@ -38,13 +37,12 @@ export function DigitalHumanPlayer({
     );
   }, [scripts, scene]);
 
-  const text = useMemo(() => {
-    return current.content.replace(/同学/g, userName || "同学");
-  }, [current.content, userName]);
+  const text = useMemo(
+    () => current.content.replace(/同学/g, userName || "同学"),
+    [current.content, userName],
+  );
 
-  useEffect(() => {
-    return () => stopSpeaking();
-  }, []);
+  useEffect(() => () => stopSpeaking(), []);
 
   function play() {
     stopSpeaking();
@@ -59,46 +57,52 @@ export function DigitalHumanPlayer({
   }
 
   return (
-    <section className="dh-card">
-      <div className={`dh-stage ${playing ? "speaking" : ""}`}>
-        <div className="dh-avatar" aria-hidden>
-          <div className="dh-face">
-            <span className="eye left" />
-            <span className="eye right" />
+    <section className="card">
+      <div className="section-head">
+        <h2>数字人播报</h2>
+        <span className="linkish">Lama Dev 风格 · Demo TTS</span>
+      </div>
+
+      <div className="dh-box">
+        <div className="dh-avatar">
+          <div className="dh-face" aria-hidden>
+            <span className="eye l" />
+            <span className="eye r" />
             <span className={`mouth ${playing ? "talk" : ""}`} />
           </div>
-          <p>督学数字人 · 雅知</p>
         </div>
-        <div className="dh-panel">
-          <div className="scene-tabs">
-            {(Object.keys(sceneLabel) as ScriptScene[]).map((key) => (
-              <button
-                key={key}
-                type="button"
-                className={scene === key ? "chip active" : "chip"}
-                onClick={() => {
-                  stop();
-                  setScene(key);
-                }}
-              >
-                {sceneLabel[key]}
-              </button>
-            ))}
-          </div>
-          <h2>{current.title}</h2>
-          <p className="script-body">{spoken || text}</p>
-          <div className="dh-actions">
-            {!playing ? (
-              <button type="button" className="btn primary" onClick={play}>
-                开始播报
-              </button>
-            ) : (
-              <button type="button" className="btn" onClick={stop}>
-                停止
-              </button>
-            )}
-            <span className="hint">比赛 Demo：浏览器 TTS 模拟数字人播报</span>
-          </div>
+
+        <div className="chips">
+          {(Object.keys(sceneLabel) as ScriptScene[]).map((key) => (
+            <button
+              key={key}
+              type="button"
+              className={scene === key ? "chip active" : "chip"}
+              onClick={() => {
+                stop();
+                setScene(key);
+              }}
+            >
+              {sceneLabel[key]}
+            </button>
+          ))}
+        </div>
+
+        <div className="script-box">{spoken || text}</div>
+
+        <div className="row">
+          {!playing ? (
+            <button type="button" className="btn sky" onClick={play}>
+              开始播报
+            </button>
+          ) : (
+            <button type="button" className="btn ghost" onClick={stop}>
+              停止
+            </button>
+          )}
+          <span className="muted" style={{ fontSize: 12 }}>
+            比赛 Demo 用浏览器语音；可替换万相预生成视频
+          </span>
         </div>
       </div>
     </section>

@@ -14,6 +14,7 @@ export default function AdminPage() {
   const { store, ready, saveScript, saveRule } = useAppStore();
   const [scriptForm, setScriptForm] = useState<ScriptItem | null>(null);
   const [ruleForm, setRuleForm] = useState<ReminderRule | null>(null);
+  const [tip, setTip] = useState("");
 
   useEffect(() => {
     if (!store) return;
@@ -22,16 +23,19 @@ export default function AdminPage() {
   }, [store]);
 
   if (!ready || !store || !scriptForm || !ruleForm) {
-    return <div className="panel">加载中…</div>;
+    return <div className="card">加载中…</div>;
   }
 
   return (
-    <div className="admin-grid">
-      <section className="panel">
-        <h1>话术配置</h1>
+    <div className="grid-main">
+      <section className="card">
+        <div className="section-head">
+          <h2>话术配置</h2>
+          <span className="linkish">Scripts</span>
+        </div>
         <p className="lead">配置开场、节点提醒、复盘总结播报文案。</p>
 
-        <div className="field">
+        <div className="field" style={{ marginTop: 12 }}>
           <label>选择话术</label>
           <select
             value={scriptForm.id}
@@ -85,21 +89,24 @@ export default function AdminPage() {
         </div>
         <button
           type="button"
-          className="btn primary"
-          onClick={() =>
+          className="btn purple"
+          onClick={() => {
             saveScript({
               ...scriptForm,
               updatedAt: new Date().toISOString().slice(0, 10),
-            })
-          }
+            });
+            setTip("话术已保存");
+          }}
         >
           保存话术
         </button>
       </section>
 
-      <section className="panel">
-        <h1>提醒规则</h1>
-        <p className="lead">配置提醒时间与对应播报场景（演示用本地规则）。</p>
+      <section className="card yellowLight">
+        <div className="section-head">
+          <h2>提醒规则 / 模板</h2>
+          <span className="linkish">Admin</span>
+        </div>
 
         <div className="field">
           <label>选择规则</label>
@@ -160,23 +167,31 @@ export default function AdminPage() {
         <div className="row">
           <button
             type="button"
-            className="btn primary"
-            onClick={() => saveRule(ruleForm)}
+            className="btn"
+            onClick={() => {
+              saveRule(ruleForm);
+              setTip("规则已保存");
+            }}
           >
             保存规则
           </button>
           <button
             type="button"
-            className="btn"
-            onClick={() =>
-              saveRule({ ...ruleForm, enabled: !ruleForm.enabled })
-            }
+            className="btn ghost"
+            onClick={() => {
+              const next = { ...ruleForm, enabled: !ruleForm.enabled };
+              setRuleForm(next);
+              saveRule(next);
+              setTip(next.enabled ? "规则已启用" : "规则已停用");
+            }}
           >
             {ruleForm.enabled ? "停用" : "启用"}
           </button>
         </div>
 
-        <table className="table" style={{ marginTop: 22 }}>
+        {tip ? <p className="lead">{tip}</p> : null}
+
+        <table className="table" style={{ marginTop: 18 }}>
           <thead>
             <tr>
               <th>规则</th>
@@ -195,7 +210,9 @@ export default function AdminPage() {
           </tbody>
         </table>
 
-        <h2 style={{ marginTop: 28 }}>计划模板</h2>
+        <div className="section-head" style={{ marginTop: 20 }}>
+          <h2>计划模板</h2>
+        </div>
         <table className="table">
           <thead>
             <tr>

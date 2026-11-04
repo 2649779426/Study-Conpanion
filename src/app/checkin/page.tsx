@@ -10,40 +10,47 @@ export default function CheckInPage() {
   const [message, setMessage] = useState("");
 
   if (!ready || !store) {
-    return <div className="panel">加载中…</div>;
+    return <div className="card">加载中…</div>;
   }
 
   const done = store.plan?.tasks.filter((t) => t.done).length ?? 0;
   const total = store.plan?.tasks.length ?? 0;
 
   return (
-    <div className="grid-2">
-      <section className="panel">
-        <h1>进度打卡</h1>
+    <div className="grid-main">
+      <section className="card">
+        <div className="section-head">
+          <h2>进度打卡</h2>
+          <span className="linkish">
+            {done}/{total}
+          </span>
+        </div>
         <p className="lead">
-          勾选已完成任务并提交打卡。系统会依据完成率动态调整后续任务强度。
+          勾选已完成任务并提交。系统会依据完成率动态调整后续任务强度。
         </p>
 
-        <div className="task-list">
+        <div className="task-list" style={{ marginTop: 14 }}>
           {store.plan?.tasks.map((task) => (
             <button
               key={task.id}
               type="button"
-              className={task.done ? "task done" : "task"}
+              className={task.done ? "task-item done" : "task-item"}
               onClick={() => toggleTask(task.id)}
             >
               <div>
                 <b>{task.title}</b>
-                <span className="muted">
+                <span className="muted" style={{ fontSize: 12 }}>
                   {task.subject} · {task.minutes} 分钟
                 </span>
               </div>
-              <span className="badge">{task.done ? "已完成" : "点击完成"}</span>
+              <span className={task.done ? "pill ok" : "pill warn"}>
+                {task.done ? "已完成" : "点击完成"}
+              </span>
             </button>
           ))}
         </div>
 
-        <div className="field" style={{ marginTop: 18 }}>
+        <div className="field" style={{ marginTop: 16 }}>
           <label>打卡备注</label>
           <textarea
             value={note}
@@ -55,25 +62,32 @@ export default function CheckInPage() {
         <div className="row">
           <button
             type="button"
-            className="btn primary"
+            className="btn"
             onClick={() => {
               checkIn(note.trim() || `完成 ${done}/${total}`);
+              const ratio = done / Math.max(total, 1);
               setMessage(
-                done / Math.max(total, 1) >= 0.75
+                ratio >= 0.75
                   ? "完成度高，已自动加练未完成项。"
-                  : done / Math.max(total, 1) < 0.4 && done > 0
+                  : ratio < 0.4 && done > 0
                     ? "完成度偏低，已自动精简未完成项。"
                     : "打卡已记录。",
               );
               setNote("");
             }}
           >
-            提交打卡（{done}/{total}）
+            提交打卡
           </button>
         </div>
-        {message ? <p className="meta" style={{ marginTop: 12 }}>{message}</p> : null}
+        {message ? (
+          <p className="lead" style={{ marginTop: 10 }}>
+            {message}
+          </p>
+        ) : null}
 
-        <h2 style={{ marginTop: 28 }}>最近打卡</h2>
+        <div className="section-head" style={{ marginTop: 24 }}>
+          <h2>最近打卡</h2>
+        </div>
         {store.checkIns.length === 0 ? (
           <p className="muted">暂无记录</p>
         ) : (

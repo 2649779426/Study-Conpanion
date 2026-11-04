@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
-import { AppShell } from "@/components/AppShell";
+import { Inter } from "next/font/google";
+import { StoreShell } from "@/components/StoreShell";
 import "./globals.css";
+
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "考研督学数字人",
@@ -14,8 +17,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-CN">
-      <body>
-        <AppShell>{children}</AppShell>
+      <body className={inter.className}>
+        <StoreShell>{children}</StoreShell>
       </body>
     </html>
   );

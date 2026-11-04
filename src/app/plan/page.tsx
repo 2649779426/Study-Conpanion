@@ -8,18 +8,21 @@ export default function PlanPage() {
   const [name, setName] = useState("");
 
   if (!ready || !store) {
-    return <div className="panel">加载中…</div>;
+    return <div className="card">加载中…</div>;
   }
 
   return (
-    <div className="grid-2">
-      <section className="panel">
-        <h1>学习计划</h1>
+    <div className="grid-main">
+      <section className="card">
+        <div className="section-head">
+          <h2>学习计划</h2>
+          <span className="linkish">Templates</span>
+        </div>
         <p className="lead">
-          选择计划模板后生成今日任务。打卡进度会触发动态调整（加练 / 精简）。
+          选择计划模板生成今日任务。打卡进度会触发动态调整（加练 / 精简）。
         </p>
 
-        <div className="field">
+        <div className="field" style={{ marginTop: 14 }}>
           <label>学员称呼</label>
           <input
             value={name || store.userName}
@@ -27,29 +30,27 @@ export default function PlanPage() {
             placeholder="例如：小周"
           />
         </div>
-        <div className="row" style={{ marginBottom: 18 }}>
+        <div className="row" style={{ marginBottom: 16 }}>
           <button
             type="button"
-            className="btn"
+            className="btn ghost"
             onClick={() => setUserName(name || store.userName)}
           >
             保存称呼
           </button>
         </div>
 
-        <h2>计划模板</h2>
-        <div className="template-grid" style={{ marginTop: 12 }}>
+        <div className="stack">
           {store.templates.map((tpl) => (
             <button
               key={tpl.id}
               type="button"
+              className="template-btn"
               onClick={() => chooseTemplate(tpl, name || store.userName)}
             >
               <b>{tpl.name}</b>
-              <div className="muted" style={{ marginTop: 6 }}>
-                {tpl.examTarget} · 每日约 {tpl.dailyMinutes} 分钟
-              </div>
-              <div className="muted" style={{ marginTop: 6 }}>
+              <div className="muted" style={{ marginTop: 6, fontSize: 12 }}>
+                {tpl.examTarget} · 每日约 {tpl.dailyMinutes} 分钟 ·{" "}
                 {tpl.subjects.join(" / ")}
               </div>
             </button>
@@ -57,24 +58,26 @@ export default function PlanPage() {
         </div>
       </section>
 
-      <section className="list-card">
-        <h2>当前计划</h2>
+      <section className="card purpleLight">
+        <div className="section-head">
+          <h2>当前计划</h2>
+          <span className="linkish">{store.plan?.startDate}</span>
+        </div>
         {store.plan ? (
           <>
-            <p className="meta">
+            <p className="lead">
               {store.plan.name} · {store.plan.examTarget}
             </p>
-            <p className="muted">开始日期 {store.plan.startDate}</p>
-            <div className="task-list" style={{ marginTop: 16 }}>
+            <div className="task-list" style={{ marginTop: 14 }}>
               {store.plan.tasks.map((task) => (
-                <div key={task.id} className="task">
+                <div key={task.id} className="task-item" style={{ cursor: "default" }}>
                   <div>
                     <b>{task.title}</b>
-                    <span className="muted">
+                    <span className="muted" style={{ fontSize: 12 }}>
                       {task.subject} · {task.minutes} 分钟
                     </span>
                   </div>
-                  <span className="badge">{task.done ? "完成" : "待办"}</span>
+                  <span className={task.done ? "pill ok" : "pill"}>{task.done ? "完成" : "待办"}</span>
                 </div>
               ))}
             </div>

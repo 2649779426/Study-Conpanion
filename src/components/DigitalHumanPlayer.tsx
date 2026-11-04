@@ -122,14 +122,14 @@ export function DigitalHumanPlayer({
       </div>
 
       <div className="dh-box">
-        <div className="dh-avatar" style={{ padding: 0, overflow: "hidden" }}>
+        <div className="dh-avatar">
           {videoSrc ? (
             <video
               ref={videoRef}
               src={videoSrc}
               playsInline
               controls={false}
-              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              poster=""
               onEnded={() => setPlaying(false)}
             />
           ) : (

@@ -1,8 +1,48 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createSeedStore } from "./seed";
-import { adjustPlanByProgress, submitCheckIn, normalizeStore, calculateStreak, shouldTriggerRule, triggerRule, updateVideoJob, noticeKey, upsertScript } from "./store";
+import { adjustPlanByProgress, applyTemplate, submitCheckIn, normalizeStore, calculateStreak, shouldTriggerRule, triggerRule, updateVideoJob, noticeKey, upsertScript } from "./store";
 import { todayKey } from "./date";
 import type { CheckInRecord, StudyTask } from "./types";
+
+it("切回冲刺模板按任务保留正确科目和独立时长", () => {
+  const seed = createSeedStore();
+  const result = applyTemplate(applyTemplate(seed, seed.templates[1]), seed.templates[0]);
+  expect(result.plan!.tasks.map(t => [t.title, t.subject, t.minutes, t.baseMinutes])).toEqual([
+    ["英语真题阅读 × 2 篇", "英语", 60, 60], ["政治马原错题回顾", "政治", 40, 40],
+    ["专业课核心框架默写", "专业课", 50, 50], ["晚间复盘与明日预告", "复盘", 15, 15],
+  ]);
+});
+it("三个模板反复切换不漂移，加练仍以复盘15分钟为基数", () => {
+  let store = createSeedStore();
+  for (let n = 0; n < 3; n++) for (const template of store.templates) {
+    store = applyTemplate(store, template);
+    expect(store.plan!.tasks.map(({ title, subject, minutes }) => ({ title, subject, minutes }))).toEqual(template.tasks);
+    expect(store.plan!.tasks.reduce((sum, t) => sum + t.minutes, 0)).toBe(template.dailyMinutes);
+  }
+  store = applyTemplate(store, store.templates[0]);
+  store.plan!.tasks.slice(0, 3).forEach(t => { t.done = true; });
+  store = adjustPlanByProgress(adjustPlanByProgress(store));
+  expect(store.plan!.tasks[3]).toMatchObject({ subject: "复盘", baseMinutes: 15, minutes: 25 });
+});
+it("旧localStorage字符串模板迁移任务科目和时长，并修复旧版当前计划且保持加练幂等", () => {
+  const store = createSeedStore();
+  const legacy = JSON.parse(JSON.stringify(store));
+  legacy.templates[0].tasks = store.plan!.tasks.map(t => t.title);
+  legacy.plan.tasks = store.plan!.tasks.map((t, i) => ({ ...t, subject: ["英语", "政治", "专业课"][i % 3], minutes: i === 3 ? 51 : 41, baseMinutes: 41,
+    title: t.title + (i === 3 ? "（加练）" : ""), done: i < 3 }));
+  const migrated = normalizeStore(legacy);
+  expect(migrated.templates[0].tasks).toEqual(store.templates[0].tasks);
+  expect(migrated.plan!.tasks[3]).toMatchObject({ subject: "复盘", minutes: 25, baseMinutes: 15, done: false });
+  expect(normalizeStore(migrated)).toEqual(migrated);
+  expect(adjustPlanByProgress(migrated).plan!.tasks[3].minutes).toBe(25);
+});
+it("模板每日时长由任务合计，均衡周任务科目与名称相符", () => {
+  const seed = createSeedStore();
+  seed.templates[0].dailyMinutes = 999;
+  expect(normalizeStore(seed).templates[0].dailyMinutes).toBe(165);
+  const balanced = applyTemplate(seed, seed.templates[2]);
+  expect(balanced.plan!.tasks.map(t => t.subject)).toEqual(["数学", "英语", "政治", "专业课"]);
+});
 
 beforeEach(() => { vi.useFakeTimers(); vi.setSystemTime(new Date("2026-11-05T02:00:00Z")); });
 afterEach(() => vi.useRealTimers());

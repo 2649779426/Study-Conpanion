@@ -1,7 +1,11 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { createSeedStore } from "./seed";
 import { normalizeStore, submitCheckIn, applyTemplate } from "./store";
-import { startFocus, pauseFocus, taskFocusSeconds, focusRecordsAt } from "./focus";
+import { focusDurationText, startFocus, pauseFocus, taskFocusSeconds, focusRecordsAt } from "./focus";
+
+it.each([[0, "0 秒"], [59, "59 秒"], [60, "1 分 0 秒"], [3599, "59 分 59 秒"], [3600, "1 小时 0 分"], [7261, "2 小时 1 分"]])("任务时长格式边界 %s秒", (seconds, expected) => {
+  expect(focusDurationText(Number(seconds))).toBe(expected);
+});
 
 beforeEach(() => { vi.useFakeTimers(); vi.setSystemTime(new Date("2026-11-05T02:00:00Z")); });
 afterEach(() => vi.useRealTimers());

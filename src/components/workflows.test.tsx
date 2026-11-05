@@ -215,7 +215,7 @@ it("首页开始、打卡页暂停并刷新恢复，只能一个任务计时且�
   await settle();
   await click("开始专注");
   await act(async () => { await vi.advanceTimersByTimeAsync(65000); });
-  expect(host.textContent).toContain("计划 60 分钟 · 已专注 1 分钟");
+  expect(host.textContent).toContain("计划 60 分钟 · 已专注 1 分 5 秒");
   await act(async () => root.render(<StoreProvider><Observe /><CheckInPage /></StoreProvider>));
   await settle(); await click("暂停");
   expect(api.store!.focus).toBeNull();
@@ -234,6 +234,21 @@ it("首页开始、打卡页暂停并刷新恢复，只能一个任务计时且�
   await click("提交打卡");
   expect(host.textContent).toContain("今天专注 1 分钟，完成 0/4 项");
   expect(api.store!.checkIns[0].subjectSeconds!.英语).toBeGreaterThanOrEqual(75);
+});
+
+it("任务专注秒数逐秒刷新，暂停后保留秒数，打卡小结不足一分钟如实显示", async () => {
+  vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue(undefined);
+  vi.spyOn(HTMLMediaElement.prototype, "pause").mockImplementation(() => undefined);
+  await act(async () => root.render(<StoreProvider><Observe /><CheckInPage /></StoreProvider>));
+  await settle(); await click("开始专注");
+  await act(async () => { await vi.advanceTimersByTimeAsync(12000); });
+  expect(host.textContent).toContain("已专注 12 秒");
+  await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
+  expect(host.textContent).toContain("已专注 13 秒");
+  await click("暂停");
+  expect(host.textContent).toContain("已专注 13 秒");
+  await click("提交打卡");
+  expect(host.textContent).toContain("今天专注 不足 1 分钟，完成 0/4 项");
 });
 
 it.each(["/", "/checkin", "/review"])("%s 中示例数据醒目标记，清除后标签消失且保留真实打卡", async path => {

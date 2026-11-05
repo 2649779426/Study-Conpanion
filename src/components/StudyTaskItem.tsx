@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useAppStore } from "./StoreProvider";
-import { taskFocusSeconds } from "@/lib/focus";
+import { focusDurationText, taskFocusSeconds } from "@/lib/focus";
 import type { StudyTask } from "@/lib/types";
 
 export function StudyTaskItem({ task }: { task: StudyTask }) {
@@ -17,7 +17,7 @@ export function StudyTaskItem({ task }: { task: StudyTask }) {
   const seconds = active ? taskFocusSeconds(store, task.id, Math.max(now, store.focus!.startedAt)) : task.actualSeconds ?? 0;
   return <div className={`task-item focus-task ${task.done ? "done" : ""} ${active ? "is-focusing" : ""}`}>
     <button type="button" className="task-toggle" onClick={() => toggleTask(task.id)} aria-pressed={task.done}>
-      <span><b>{task.title}</b><span className="muted task-time">{task.subject} · 计划 {task.minutes} 分钟 · 已专注 {Math.floor(seconds / 60)} 分钟</span></span>
+      <span><b>{task.title}</b><span className="muted task-time">{task.subject} · 计划 {task.minutes} 分钟 · 已专注 {focusDurationText(seconds)}</span></span>
       <span className={task.done ? "pill ok" : "pill warn"}>{task.done ? "已完成" : "点击完成"}</span>
     </button>
     <div className="row focus-controls">

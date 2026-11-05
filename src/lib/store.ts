@@ -30,6 +30,8 @@ export function normalizeStore(store: AppStore, today = todayKey()): AppStore {
   const seed = createSeedStore();
   store = { ...seed, ...store, focus: store.focus ?? null,
     focusRecords: store.focusRecords ?? [], focusRemainders: store.focusRemainders ?? {} };
+  const legacyTemplates = new Set(store.templates.filter(t => t.tasks.some(task => typeof task === "string")).map(t => t.id));
+  store = { ...store, templates: store.templates.map(template => migrateTemplate(template, seed.templates)) };
   if (store.focus && todayKey(new Date(store.focus.startedAt)) < today) {
     store = settleFocus(store, new Date(`${today}T00:00:00+08:00`).getTime(), true);
   }
@@ -52,24 +54,40 @@ export function normalizeStore(store: AppStore, today = todayKey()): AppStore {
       tasks: store.plan.tasks.map(t => {
         const baseTitle = t.baseTitle ?? t.title.replace(/（加练）|（精简）/g, "");
         const original = seed.plan?.tasks.find(s => s.id === t.id);
-        const templateMinutes = template?.tasks.length ? Math.max(20, Math.round(template.dailyMinutes / template.tasks.length)) : undefined;
-        const baseMinutes = t.baseMinutes ?? original?.baseMinutes ?? templateMinutes ?? t.minutes;
-        return { ...t, baseTitle, baseMinutes, done: changedDay ? false : t.done };
+        const templateTask = template?.tasks.find(task => task.title === baseTitle);
+        const legacy = templateTask && legacyTemplates.has(store.plan!.templateId);
+        const baseMinutes = legacy ? templateTask.minutes : t.baseMinutes ?? templateTask?.minutes ?? original?.baseMinutes ?? t.minutes;
+        const minutes = legacy ? t.title.endsWith("（加练）") ? baseMinutes + 10
+          : t.title.endsWith("（精简）") ? Math.max(15, baseMinutes - 10) : baseMinutes : t.minutes;
+        return { ...t, baseTitle, baseMinutes, minutes, subject: legacy ? templateTask.subject : t.subject, done: changedDay ? false : t.done };
       }),
     } : null,
   }, today);
 }
+/** 旧字符串任务按原始标题匹配种子；用户自定义任务保留标题并补齐独立字段。 */
+function migrateTemplate(template: PlanTemplate, seeds: PlanTemplate[]): PlanTemplate {
+  const seed = seeds.find(t => t.id === template.id);
+  const tasks = template.tasks.map((task, index) => {
+    if (typeof task !== "string") return task;
+    const original = seed?.tasks.find(t => t.title === task);
+    return original ? { ...original } : { title: task,
+      subject: /数学/.test(task) ? "数学" : /英语|单词|阅读|作文/.test(task) ? "英语"
+        : /政治/.test(task) ? "政治" : /专业课/.test(task) ? "专业课" : /复盘/.test(task) ? "复盘" : template.subjects[index % template.subjects.length] ?? "综合",
+      minutes: Math.max(1, Math.round(template.dailyMinutes / template.tasks.length)) };
+  });
+  return { ...template, tasks, dailyMinutes: tasks.reduce((sum, task) => sum + task.minutes, 0), subjects: [...new Set(tasks.map(task => task.subject))] };
+}
 export function applyTemplate(store: AppStore, template: PlanTemplate, userName?: string): AppStore {
   store = pauseFocus(normalizeStore(store));
+  template = migrateTemplate(template, createSeedStore().templates);
   return {
     ...store, userName: userName?.trim() || store.userName,
     plan: {
       id: `plan-${Date.now()}`, templateId: template.id, name: template.name,
       examTarget: template.examTarget, startDate: todayKey(), streak: calculateStreak(store.checkIns),
-      tasks: template.tasks.map((title, index) => {
-        const minutes = Math.max(20, Math.round(template.dailyMinutes / template.tasks.length));
+      tasks: template.tasks.map(({ title, subject, minutes }, index) => {
         return { id: `task-${Date.now()}-${index}`, title, baseTitle: title, minutes,
-          baseMinutes: minutes, subject: template.subjects[index % template.subjects.length] ?? "综合", done: false };
+          baseMinutes: minutes, subject, done: false };
       }),
     },
   };

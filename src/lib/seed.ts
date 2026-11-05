@@ -1,7 +1,12 @@
-import type { AppStore, ScriptScene } from "./types";
+import type { AppStore, PlanTemplate, ScriptScene } from "./types";
 import { todayKey } from "./date";
 
 export const STORAGE_KEY = "kaoyan-duxue-store-v1";
+
+function planTemplate(template: Omit<PlanTemplate, "dailyMinutes" | "subjects">): PlanTemplate {
+  return { ...template, dailyMinutes: template.tasks.reduce((sum, task) => sum + task.minutes, 0),
+    subjects: [...new Set(template.tasks.map(task => task.subject))] };
+}
 
 /** 仅逐字相同的旧种子参与迁移，用户编辑过的内容保持原样。 */
 export const LEGACY_SCRIPT_TEXTS: Record<ScriptScene, string> = {
@@ -98,35 +103,39 @@ export function createSeedStore(): AppStore {
       },
     ],
     templates: [
-      {
+      planTemplate({
         id: "tpl-kaoyan-30",
         name: "考研冲刺 30 天",
         examTarget: "统考冲刺",
-        dailyMinutes: 165,
-        subjects: ["英语", "政治", "专业课"],
         tasks: [
-          "英语真题阅读 × 2 篇",
-          "政治马原错题回顾",
-          "专业课核心框架默写",
-          "晚间复盘与明日预告",
+          { title: "英语真题阅读 × 2 篇", subject: "英语", minutes: 60 },
+          { title: "政治马原错题回顾", subject: "政治", minutes: 40 },
+          { title: "专业课核心框架默写", subject: "专业课", minutes: 50 },
+          { title: "晚间复盘与明日预告", subject: "复盘", minutes: 15 },
         ],
-      },
-      {
+      }),
+      planTemplate({
         id: "tpl-english-focus",
         name: "英语强化周",
         examTarget: "英语提分",
-        dailyMinutes: 120,
-        subjects: ["英语"],
-        tasks: ["单词 100 个", "阅读理解 2 篇", "作文提纲 1 篇", "错题回看"],
-      },
-      {
+        tasks: [
+          { title: "单词 100 个", subject: "英语", minutes: 30 },
+          { title: "阅读理解 2 篇", subject: "英语", minutes: 40 },
+          { title: "作文提纲 1 篇", subject: "英语", minutes: 30 },
+          { title: "错题回看", subject: "英语", minutes: 20 },
+        ],
+      }),
+      planTemplate({
         id: "tpl-balanced",
         name: "均衡备考周",
         examTarget: "综合稳住",
-        dailyMinutes: 180,
-        subjects: ["英语", "政治", "专业课", "数学"],
-        tasks: ["数学习题 10 题", "英语阅读 1 篇", "政治选择题一节", "专业课背诵"],
-      },
+        tasks: [
+          { title: "数学习题 10 题", subject: "数学", minutes: 60 },
+          { title: "英语阅读 1 篇", subject: "英语", minutes: 40 },
+          { title: "政治选择题一节", subject: "政治", minutes: 30 },
+          { title: "专业课背诵", subject: "专业课", minutes: 50 },
+        ],
+      }),
     ],
     rules: [
       {

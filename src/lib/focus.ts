@@ -1,6 +1,13 @@
 import { shiftDay, todayKey } from "./date";
 import type { AppStore, FocusRecord } from "./types";
 
+export function focusDurationText(seconds: number): string {
+  seconds = Math.max(0, Math.floor(seconds));
+  if (seconds < 60) return `${seconds} 秒`;
+  if (seconds < 3600) return `${Math.floor(seconds / 60)} 分 ${seconds % 60} 秒`;
+  return `${Math.floor(seconds / 3600)} 小时 ${Math.floor(seconds / 60) % 60} 分`;
+}
+
 /** 按北京时间日界拆分；不足一秒的余量留在每个任务、每日的账上，暂停/结束也不丢。 */
 function settlement(store: AppStore, now: number) {
   const records: FocusRecord[] = [];

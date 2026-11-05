@@ -14,7 +14,7 @@ export type PlanTemplate = {
   examTarget: string;
   dailyMinutes: number;
   subjects: string[];
-  tasks: string[];
+  tasks: { title: string; subject: string; minutes: number }[];
 };
 
 export type ReminderRule = {

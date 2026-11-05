@@ -16,10 +16,11 @@ export function ScheduledPlayer({ defaultScene = "opening", autoPlay = false, pl
   if (!store) return null;
   const record = store.checkIns.find(r => r.date === store.taskDate);
   const showSummary = !compact && (broadcast?.scene ?? playSignal?.scene ?? defaultScene) === "review" && !!record;
+  const minutes = aggregateDays(store, 1)[0].minutes;
   return <div className="stack"><DigitalHumanPlayer scripts={store.scripts} userName={store.userName}
     defaultScene={defaultScene} autoPlay={startOnMount} compact={compact}
     playSignal={broadcast ? null : playSignal}
     reminder={broadcast ? { event: broadcast, remaining: store.broadcasts.length - 1, dismiss: dismissBroadcast } : undefined} />
-    {showSummary ? <p className="card daily-review-summary">今天专注 {aggregateDays(store, 1)[0].minutes} 分钟，完成 {record.taskIds.length}/{record.totalTasks} 项</p> : null}
+    {showSummary ? <p className="card daily-review-summary">今天专注 {minutes < 1 ? "不足 1 分钟" : `${minutes} 分钟`}，完成 {record.taskIds.length}/{record.totalTasks} 项</p> : null}
   </div>;
 }

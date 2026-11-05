@@ -3,12 +3,12 @@ import { mkdir, readFile, writeFile, rename, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { chanjingFetch } from "./client";
 import { createVideoPoster } from "./poster";
+import { getAvatarConfig } from "./avatar";
 import { videoHash } from "../playback";
 import type { ScriptScene, VideoJob } from "../types";
 
 export const JOB_ROOT = join(process.cwd(), ".data", "chanjing");
 export const VIDEO_ROOT = join(JOB_ROOT, "videos");
-type Person = { id: string; name?: string; audio_man_id?: string; figures?: { type: string; width: number; height: number }[] };
 type StoredJob = VideoJob & {
   audioTaskId: string;
   videoTaskId?: string;
@@ -43,31 +43,22 @@ export async function getJob(id: string): Promise<VideoJob | null> {
   return job ? publicJob(job) : null;
 }
 export async function createJob(scene: ScriptScene, text: string): Promise<VideoJob> {
-  const hash = await videoHash(scene, text);
+  const avatar = getAvatarConfig();
+  const hash = await videoHash(scene, text, avatar);
   return locked(hash, async () => {
     const existing = await readJob(hash);
     if (existing && existing.status !== "failed") {
       if (existing.status !== "completed") return publicJob(existing);
       try { if ((await stat(join(VIDEO_ROOT, `${hash}.mp4`))).size > 0) return publicJob(existing); } catch { /* 缓存文件已移走时重新生成 */ }
     }
-    const list = await chanjingFetch<{ list: Person[] }>("/list_common_dp?page=1&size=20");
-    const person = list.data.list?.find(p => p.name === "文昊") ?? list.data.list?.[0];
-    const figure = person?.figures?.find(f => f.type && f.width && f.height);
-    if (!person || !figure) throw new Error("蝉镜没有可用的数字人形象");
-    let voice = person.audio_man_id;
-    if (!voice) {
-      const voices = await chanjingFetch<{ list: { id: string; gender?: string }[] }>("/list_common_audio?page=1&size=50");
-      voice = voices.data.list?.find(a => a.gender === "male")?.id ?? voices.data.list?.[0]?.id;
-    }
-    if (!voice) throw new Error("蝉镜没有可用的语音资源");
     const audio = await chanjingFetch<{ task_id: string }>("/create_audio_task", {
-      method: "POST", body: JSON.stringify({ audio_man: voice, speed: 1, text: { text, plain_text: text } }),
+      method: "POST", body: JSON.stringify({ audio_man: avatar.audioManId, speed: 1, text: { text, plain_text: text } }),
     });
     if (!audio.data.task_id) throw new Error("蝉镜未返回语音任务 ID");
     const job: StoredJob = {
       jobId: hash, hash, scene, text, status: "queued", createdAt: new Date().toISOString(),
       audioTaskId: audio.data.task_id,
-      person: { id: person.id, figure_type: figure.type, width: figure.width, height: figure.height },
+      person: { id: avatar.personId, figure_type: avatar.figureType, width: avatar.width, height: avatar.height },
     };
     await persist(job);
     return publicJob(job);

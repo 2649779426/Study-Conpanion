@@ -2,7 +2,7 @@ import { readFileSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const ROOT = resolve(import.meta.dirname, "..");
-const API_BASE = "https://open-api.chanjing.cc/open/v1";
+const API_BASE = () => (process.env.CHANJING_API_BASE || "https://open-api.chanjing.cc/open/v1").replace(/\/$/, "");
 
 function loadEnvLocal() {
   const path = resolve(ROOT, ".env.local");
@@ -24,7 +24,7 @@ function sleep(ms) {
 async function api(path, { method = "GET", body, token } = {}) {
   const headers = { "Content-Type": "application/json; charset=utf-8" };
   if (token) headers.access_token = token;
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await fetch(`${API_BASE()}${path}`, {
     method,
     headers,
     body: body ? JSON.stringify(body) : undefined,
@@ -36,19 +36,6 @@ async function api(path, { method = "GET", body, token } = {}) {
     );
   }
   return json;
-}
-
-function pickMeaningful(list) {
-  return [...list].sort((a, b) => {
-    const score = (name = "") => {
-      let s = 0;
-      if (name && !/^未命名|test|测试|demo/i.test(name)) s += 2;
-      if (/[\u4e00-\u9fff]/.test(name)) s += 2;
-      if (name.length >= 2) s += 1;
-      return s;
-    };
-    return score(b.name) - score(a.name);
-  })[0];
 }
 
 async function waitAudio(token, taskId) {
@@ -131,25 +118,14 @@ async function generateOne(token, voice, person, figure, scene, text) {
   });
   const video = await waitVideo(token, createdVideo.data);
 
-  const outDir = resolve(ROOT, "public/videos");
+  const outDir = resolve(ROOT, "../_codex/sample");
   mkdirSync(outDir, { recursive: true });
-  const mp4Path = resolve(outDir, `${scene}.mp4`);
-  const wavPath = resolve(outDir, `${scene}.wav`);
+  const mp4Path = resolve(outDir, "reminder_xiaoyan.mp4");
   const mp4Res = await fetch(video.video_url);
-  const wavRes = await fetch(audio.full.url);
-  if (!mp4Res.ok || !wavRes.ok) throw new Error(`download failed for ${scene}`);
-  writeFileSync(mp4Path, Buffer.from(await mp4Res.arrayBuffer()));
-  writeFileSync(wavPath, Buffer.from(await wavRes.arrayBuffer()));
+  if (!mp4Res.ok) throw new Error(`download HTTP ${mp4Res.status}`);
+  writeFileSync(mp4Path, Buffer.from(await mp4Res.arrayBuffer()), { flag: "wx" });
+  return { scene, text, audio_duration: audio.full.duration, video_duration: video.duration, saved_mp4: mp4Path, bytes_mp4: readFileSync(mp4Path).length };
 
-  return {
-    scene,
-    text,
-    audio_duration: audio.full.duration,
-    video_duration: video.duration,
-    saved_mp4: `public/videos/${scene}.mp4`,
-    saved_wav: `public/videos/${scene}.wav`,
-    bytes_mp4: readFileSync(mp4Path).length,
-  };
 }
 
 async function main() {
@@ -158,76 +134,21 @@ async function main() {
     throw new Error("missing credentials");
   }
 
-  const scenes = {
-    opening:
-      "同学你好，我是你的考研督学助手。今天按计划推进，先从英语阅读开始。打开任务，打卡跟上节奏，我们一起把今天拿下。",
-    reminder:
-      "提醒一下：今天该完成英语单词与阅读任务了。别拖延，完成后记得打卡。坚持住，离目标又近一步。",
-    review:
-      "今天辛苦了。回顾一下已完成的任务，未完成的拆到明天。睡前把错题看一眼，明天继续稳步推进。",
-  };
-
-  const only = process.argv[2];
-  const entries = Object.entries(scenes).filter(([k]) => !only || k === only);
-  if (!entries.length) throw new Error("no scene selected");
-
+  if (process.argv[2] !== "reminder" || process.argv.length !== 3) throw new Error("仅允许显式指定 reminder 样片");
+  const output = resolve(ROOT, "../_codex/sample/reminder_xiaoyan.mp4");
+  if (existsSync(output)) throw new Error("样片文件已存在，停止以免重复生成");
+  const { getAvatarConfig } = await import("../src/lib/chanjing/avatar.ts");
+  const avatar = getAvatarConfig();
+  const text = "同学，下午两点了，政治马原错题回顾还没完成。先花四十分钟过一遍错题，做完回来打卡，学姐等你。";
   const tokenJson = await api("/access_token", {
-    method: "POST",
-    body: {
-      app_id: process.env.CHANJING_APP_ID,
-      secret_key: process.env.CHANJING_SECRET_KEY,
-    },
+    method: "POST", body: { app_id: process.env.CHANJING_APP_ID, secret_key: process.env.CHANJING_SECRET_KEY },
   });
   const token = tokenJson.data.access_token;
+  if (!token) throw new Error("蝉镜未返回 access_token");
+  const result = await generateOne(token, { id: avatar.audioManId }, { id: avatar.personId },
+    { type: avatar.figureType, width: avatar.width, height: avatar.height }, "reminder", text);
+  console.log(JSON.stringify({ person: avatar.personName, voice: avatar.audioName, result }, null, 2));
 
-  const audioList = await api("/list_common_audio?page=1&size=50", { token });
-  const dpList = await api("/list_common_dp?page=1&size=20", { token });
-  // Prefer a clearly male tutor-like avatar for 督学
-  const person =
-    (dpList.data.list || []).find((p) => p.name === "文昊") ||
-    pickMeaningful(dpList.data.list || []);
-  const figure =
-    (person.figures || []).find((f) => f.type && f.width && f.height) ||
-    person.figures?.[0];
-  if (!figure?.type || !figure.width || !figure.height) {
-    throw new Error("figure incomplete");
-  }
-
-  // Match voice to avatar: use bundled audio_man_id first, else same-gender male voice
-  const bundledId = person.audio_man_id;
-  const voiceFromList = (audioList.data.list || []).find((a) => a.id === bundledId);
-  const maleFallback =
-    (audioList.data.list || []).find((a) => a.name === "知心学长") ||
-    (audioList.data.list || []).find((a) => a.gender === "male" && /学长|专家|精英|男/.test(a.name || "")) ||
-    (audioList.data.list || []).find((a) => a.gender === "male");
-  const voice = bundledId
-    ? {
-        id: bundledId,
-        name: person.audio_name || voiceFromList?.name || "avatar-default-male",
-      }
-    : maleFallback;
-  if (!voice?.id) throw new Error("no matching male voice");
-
-  const results = [];
-  for (const [scene, text] of entries) {
-    // sequential to avoid parallel billing/concurrency issues
-    results.push(await generateOne(token, voice, person, figure, scene, text));
-  }
-
-  console.log(
-    JSON.stringify(
-      {
-        voice_name: voice.name,
-        voice_id: voice.id,
-        person_name: person.name,
-        person_gender: person.gender,
-        figure_type: figure.type,
-        results,
-      },
-      null,
-      2,
-    ),
-  );
 }
 
 main().catch((err) => {

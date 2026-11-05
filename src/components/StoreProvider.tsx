@@ -5,6 +5,7 @@ import { createSeedStore } from "@/lib/seed";
 import { startFocus, pauseFocus } from "@/lib/focus";
 import { clearSampleRecords, loadSampleRecords } from "@/lib/samples";
 import type { AppStore, PlanTemplate, ReminderRule, ScriptItem, ScriptScene, VideoJob } from "@/lib/types";
+import type { AvatarIdentity } from "@/lib/chanjing/identity";
 
 type StoreApi = {
   store: AppStore | null; ready: boolean;
@@ -19,12 +20,16 @@ type StoreApi = {
   startGeneration: (scene: ScriptScene, text: string) => Promise<void>;
   rememberJob: (job: VideoJob) => void;
   generationError: string;
+  avatar: AvatarIdentity | null; configured: boolean | null; configError: string;
 };
 const StoreContext = createContext<StoreApi | null>(null);
 
 export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [store, setStore] = useState<AppStore | null>(null);
   const [generationError, setGenerationError] = useState("");
+  const [avatar, setAvatar] = useState<AvatarIdentity | null>(null);
+  const [configured, setConfigured] = useState<boolean | null>(null);
+  const [configError, setConfigError] = useState("");
   const current = useRef<AppStore | null>(null);
   const mutate = useCallback((change: (store: AppStore) => AppStore) => {
     if (!current.current) return;
@@ -32,6 +37,18 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     current.current = next; saveStore(next); setStore(next);
   }, []);
   const rememberJob = useCallback((job: VideoJob) => mutate(s => updateVideoJob(s, job)), [mutate]);
+  useEffect(() => {
+    let cancelled = false;
+    void fetch("/api/chanjing/status", { cache: "no-store" }).then(r => {
+      if (!r.ok) throw new Error("无法读取数字人配置，请刷新页面重试");
+      return r.json();
+    }).then(body => {
+      if (typeof body.configured !== "boolean" || typeof body.avatar?.personId !== "string" || !body.avatar.personId || typeof body.avatar?.audioManId !== "string" || !body.avatar.audioManId)
+        throw new Error("数字人配置不完整，请刷新页面重试");
+      if (!cancelled) { setAvatar(body.avatar); setConfigured(body.configured); }
+    }).catch(error => { if (!cancelled) setConfigError(error instanceof Error ? error.message : "数字人配置读取失败"); });
+    return () => { cancelled = true; };
+  }, []);
   useEffect(() => {
     const tick = () => mutate(s => {
       let next = normalizeStore(s);
@@ -71,7 +88,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     return () => { disposed = true; clearInterval(timer); };
   }, [mutate]);
   const api = useMemo<StoreApi>(() => ({
-    store, ready: !!store, generationError,
+    store, ready: !!store, generationError, avatar, configured, configError,
     setUserName: name => mutate(s => ({ ...s, userName: name.trim() || "同学" })),
     chooseTemplate: (template, name) => mutate(s => applyTemplate(s, template, name)),
     toggleTask: id => mutate(s => toggleTask(s, id)),
@@ -104,7 +121,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         throw error;
       }
     },
-  }), [store, mutate, generationError, rememberJob]);
+  }), [store, mutate, generationError, rememberJob, avatar, configured, configError]);
   return <StoreContext.Provider value={api}>{children}</StoreContext.Provider>;
 }
 export function useAppStore() {

@@ -15,7 +15,7 @@ type Props = {
   reminder?: { event: BroadcastEvent; remaining: number; dismiss: () => void };
 };
 export function DigitalHumanPlayer({ scripts, userName, defaultScene = "opening", autoPlay = false, playSignal, companion = true, compact = false, reminder }: Props) {
-  const { store, rememberJob } = useAppStore();
+  const { store, rememberJob, avatar } = useAppStore();
   const [scene, setScene] = useState(defaultScene);
   const [playing, setPlaying] = useState(false);
   const [source, setSource] = useState<PlaybackSource>({ kind: "tts", label: "浏览器语音合成" });
@@ -39,7 +39,7 @@ export function DigitalHumanPlayer({ scripts, userName, defaultScene = "opening"
 
   useEffect(() => {
     let cancelled = false;
-    void selectPlayback(scene, text, jobs ?? []).then(result => {
+    void selectPlayback(scene, text, jobs ?? [], avatar).then(result => {
       if (cancelled) return;
       const nextIdentity = JSON.stringify([scene, text, result.url, result.poster]);
       if (identity.current !== nextIdentity) {
@@ -52,7 +52,7 @@ export function DigitalHumanPlayer({ scripts, userName, defaultScene = "opening"
       setResolvedFor(JSON.stringify([scene, text]));
     }).catch(() => { if (!cancelled) { setReady(true); setSource({ kind: "tts", label: "浏览器语音合成" }); } });
     return () => { cancelled = true; };
-  }, [scene, text, jobs]);
+  }, [scene, text, jobs, avatar]);
 
   // 本地存储被重置或换浏览器后，按最终文本查询服务端已存在的视频；不创建付费任务。
   useEffect(() => {

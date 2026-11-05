@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createSeedStore } from "./seed";
 import { adjustPlanByProgress, submitCheckIn, normalizeStore, calculateStreak, shouldTriggerRule, triggerRule, updateVideoJob, noticeKey, upsertScript } from "./store";
 import { todayKey } from "./date";
-import type { CheckInRecord } from "./types";
+import type { CheckInRecord, StudyTask } from "./types";
 
 beforeEach(() => { vi.useFakeTimers(); vi.setSystemTime(new Date("2026-11-05T02:00:00Z")); });
 afterEach(() => vi.useRealTimers());
@@ -63,6 +63,14 @@ it("打开新一天自动清除完成状态并保留历史", () => {
   const partial = submitCheckIn(next, "新一天");
   expect(partial.checkIns).toHaveLength(2);
   expect(partial.checkIns[0].allDone).toBe(false);
+});
+it("迁移旧模板任务时从模板原始时长恢复，不能把已加练时长当基数", () => {
+  const store = createSeedStore();
+  store.plan!.templateId = "tpl-english-focus";
+  store.plan!.tasks = [{ id: "legacy", title: "单词 100 个（加练）", subject: "英语", minutes: 60, done: false } as StudyTask];
+  const migrated = normalizeStore(store);
+  expect(migrated.plan!.tasks[0].baseMinutes).toBe(30);
+  expect(migrated.plan!.tasks[0].baseTitle).toBe("单词 100 个");
 });
 it("同日更新成部分完成会撤回当天连续计数", () => {
   const store = createSeedStore(); store.plan!.tasks.forEach(t => { t.done = true; });

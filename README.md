@@ -1,36 +1,107 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 考研督学数字人 Demo
 
-## Getting Started
+面向备考学员的本地可运行 Demo，串联计划选择、任务完成、每日打卡、规则提醒和数字人播报。当前版本用于真实运行展示，不包含账号系统、云端多人同步或应用关闭后的系统推送。
 
-First, run the development server:
+## 功能
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
+- 今日任务勾选、模板切换、学员称呼保存；数据保存在当前浏览器 localStorage。
+- 北京时间按天打卡：同日提交覆盖当天记录，跨日重置任务完成状态。连续天数只计算当天全部完成的真实记录，从今天或昨天向前连续统计；缺失或部分完成的一天中断连续。旧版没有任务总数快照的记录不推测为全完成。
+- 完成率 ≥75% 时给剩余任务加练 10 分钟；完成率在 0–40% 之间时精简 10 分钟（最低 15 分钟）。每次从原始标题与时长计算，重复提交不累加。
+- 近 7 天图仅展示真实打卡；没有提交就显示“未打卡”。
+- 全局每 20 秒按北京时间检查启用的规则，当天每条只自动触发一次。页面打开时会补触发今天已经到点的规则，跨页面使用全局播报浮层排队展示；关闭浮层可查看下一条。reminder 只有存在未完成任务才自动触发，opening/review 正常触发。
+- 后台支持保存话术与规则、启停、每条规则“立即试触发（手动）”、页面内二次确认重置。手动触发单独记录，不消耗当天的自动提醒。
+- 消息中心展示实际提醒触发、打卡与视频生成完成；公告展示启用的提醒规则。未读数由记录计算，打开对应面板清零。
+- 搜索当前任务、话术与模板并跳转到对应页面。
+
+提醒需要网页和服务运行；浏览器后台节流时会在恢复可见后再次检查。浏览器可能阻止自动出声，浮层/播放器会提示点击播放。它不是关闭应用后仍能推送的闹钟。
+
+## 安装和运行
+
+建议 Node.js 24（本轮验证版本 24.21.0）、pnpm 10.22.0。
+
+```powershell
+pnpm install
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+访问 http://localhost:3000 。生产模式：
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```powershell
+pnpm build
+pnpm start --port 3123
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+访问 http://localhost:3123 。Windows 可直接在项目目录使用 PowerShell 执行这些命令。
 
-## Learn More
+### 蝉镜凭据
 
-To learn more about Next.js, take a look at the following resources:
+不配置凭据也能运行预置视频、浏览器语音、任务和打卡。实时生成需要自行准备蝉镜开放平台账号与可用额度。在项目根新建 `.env.local`，参考 `.env.example`：
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```dotenv
+CHANJING_APP_ID=你的应用ID
+CHANJING_SECRET_KEY=你的密钥
+# 可选
+CHANJING_API_BASE=https://open-api.chanjing.cc/open/v1
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+配置后重启服务；凭据只在服务端使用。未配置时后台按钮禁用并写明“未配置蝉镜凭据，见 README”，不会显示假的成功结果。生成由用户点击按钮发起，可能消耗平台额度；本轮无真实凭据，没有执行真实生成或计费请求。
 
-## Deploy on Vercel
+## 数字人视频的三种来源
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+所有匹配都以“场景 + 替换学员称呼后的最终播报文本”的 SHA-256 为准，字幕也使用同一最终文本：
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| 来源标签 | 选择条件 | 实际播放 |
+| --- | --- | --- |
+| 蝉镜数字人 · 预生成 | 最终文本与种子原文完全一致 | `public/videos/opening.mp4`、`reminder.mp4`、`review.mp4` |
+| 蝉镜数字人 · 实时生成 | 当前场景和最终文案匹配已完成任务 | 服务端保存的视频，通过本地 `/generated/<hash>.mp4` 路由读取 |
+| 浏览器语音合成 | 没有匹配视频，或视频不可用 | 静态头像 + Web Speech API 朗读当前文案，显示“文案已更新，视频待生成” |
+
+例如，把称呼从“同学”改成“小周”后，开场原视频不能再复用，因为它说的仍是“同学”。要使用数字人视频，请在后台为“小周”的最终文本重新生成。
+
+实时任务流程：
+
+1. 先保存话术，再点击该话术的“生成数字人视频”。
+2. `POST /api/chanjing/broadcast` 仅创建语音任务并返回 jobId。
+3. 全局客户端每 5 秒请求 `GET /api/chanjing/broadcast?id=<jobId>`，每次只推进一小步：查语音 → 创建视频 → 查视频 → 下载本地。
+4. 任务 JSON 原子写入 `.data/chanjing/<hash>.json`，下载视频保存到 `.data/chanjing/videos/<hash>.mp4`。两者均被 Git 忽略。使用动态文件路由，生产模式下无需重新构建即可播放新文件，支持 Range 拖动。
+5. 只有平台合成成功且有效 MP4 下载并保存后才标为完成。失败会显示原因；服务器热重载或重启后保留任务，浏览器再次打开时继续查询。
+6. 页面关闭时不会在后台无限轮询；打开应用后恢复。完成视频按哈希查询可重新发现。重置演示数据仅重置当前浏览器，不删除服务端缓存。
+
+当前持久化适合一个本地 Node 服务实例，不适用于多个无共享磁盘的无服务器实例。实时生成链路用模拟上游响应验证成功、失败、下载异常、并发去重和重载恢复；模拟结果只存在单测内，不会写入演示界面。
+
+## 验证
+
+```powershell
+pnpm lint
+pnpm exec tsc --noEmit
+pnpm test
+pnpm build
+```
+
+测试包括北京时间边界、按日覆盖与连续天数、跨日重置、加练/精简幂等、选片规则、提醒调度及后台交互。DOM 集成测试使用 happy-dom，不启动浏览器。生产 HTTP 验收与输出摘要见 `docs/verification.md`。
+
+`public/videos/acceptance.mp4` 和 `acceptance.wav` 是原有蝉镜接口验收产物，保留为测试证据；它们不在播放器里冒充当前话术。三个场景的 WAV 也保留为原始语音证据。录制评审视频时应展示实际运行；改过话术但未生成对应视频时，按界面实示语音降级。
+
+## 目录
+
+```text
+src/app/                       四个页面、API 与本地视频路由
+src/components/                全局状态、提醒浮层、播放器、后台生成进度
+src/lib/date.ts                北京时间日期工具
+src/lib/store.ts               打卡、调整、提醒和消息业务规则
+src/lib/playback.ts            最终文本、哈希与三来源选片
+src/lib/chanjing/              服务端 API、持久化异步任务及单测
+public/                        实际引用的本地图标与预生成/验收视频
+scripts/                       原有蝉镜接口验收与场景生成脚本
+docs/                          执行计划、验证记录
+.data/chanjing/                运行时生成的任务和视频（不入 Git）
+```
+
+## 第三方资源与边界
+
+- Next.js 16.4.5、React 19.3.0：页面框架和交互；TypeScript、Tailwind CSS、ESLint：工程工具；Vitest、happy-dom：测试工具。版本以 package.json/pnpm-lock.yaml 为准。
+- [蝉镜开放平台](https://open-api.chanjing.cc/)：数字人形象、语音和视频合成 API；预生成三段视频为仓库现有真实生成素材，文本保留在 seed.ts。数字人/音色及视频使用权按平台账号协议、授权及相关条款执行，不将形象模型或语音合成算法声明为自研。
+- 浏览器 Web Speech API：无匹配视频时的语音合成；可用声音和自动播放行为取决于浏览器及系统。
+- Inter 字体：通过 Next.js 的 next/font/google 集成，字体资源随构建处理；中文使用系统字体回退。
+- public 中保留的 PNG 图标、头像和 logo 是仓库已有素材。仓库未附可核实的作者、原始下载链接和许可记录，因此本次无法确认其完整来源，未虚构归属或授权；团队应在申报第三方资源清单中据原始素材记录补充。
+- 本项目新增贡献为督学业务状态、按天打卡与调整规则、提醒调度、消息记录、数字人任务编排和文案匹配播放等应用实现。学习建议使用配置规则，不接入大模型推理，不将模板调整描述为未实现的智能分析。

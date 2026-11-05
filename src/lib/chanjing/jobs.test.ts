@@ -11,6 +11,8 @@ vi.mock("node:fs/promises", () => ({
 }));
 
 import { createJob, advanceJob, getJob } from "./jobs";
+import { GET as queryJob, POST } from "@/app/api/chanjing/broadcast/route";
+import { GET as readVideo } from "@/app/generated/[filename]/route";
 
 beforeEach(() => {
   disk.clear(); vi.stubEnv("CHANJING_APP_ID", "test-app"); vi.stubEnv("CHANJING_SECRET_KEY", "test-key");
@@ -83,4 +85,26 @@ it("并发创建相同文案复用任务，并发查询不重复创建视频", a
   expect(fetcher.mock.calls.filter(([url]) => String(url).endsWith("/create_audio_task"))).toHaveLength(1);
   await Promise.all([advanceJob(a.jobId), advanceJob(a.jobId)]);
   expect(fetcher.mock.calls.filter(([url]) => String(url).endsWith("/create_video"))).toHaveLength(1);
+});
+
+it("API 无凭据返回 503，拒绝无效参数且不存在的任务返回 404", async () => {
+  vi.stubEnv("CHANJING_APP_ID", "");
+  const missing = await POST(new Request("http://localhost/api/chanjing/broadcast", { method: "POST", body: JSON.stringify({ scene: "opening", text: "小周你好" }) }));
+  expect(missing.status).toBe(503);
+  expect((await missing.json()).ok).toBe(false);
+  vi.stubEnv("CHANJING_APP_ID", "test-app");
+  const invalid = await POST(new Request("http://localhost/api/chanjing/broadcast", { method: "POST", body: JSON.stringify({ scene: "unknown", text: "" }) }));
+  expect(invalid.status).toBe(400);
+  expect((await queryJob(new Request("http://localhost/api/chanjing/broadcast?id=missing"))).status).toBe(404);
+});
+it("本地视频路由读取下载文件、支持 Range 并阻止路径穿越", async () => {
+  apiMock();
+  const job = await createJob("opening", "小周你好");
+  for (let i = 0; i < 3; i++) { vi.advanceTimersByTime(6000); await advanceJob(job.jobId); }
+  const context = { params: Promise.resolve({ filename: `${job.hash}.mp4` }) };
+  const result = await readVideo(new Request("http://localhost" + `/generated/${job.hash}.mp4`, { headers: { Range: "bytes=4-7" } }), context);
+  expect(result.status).toBe(206);
+  expect(await result.text()).toBe("ftyp");
+  expect(result.headers.get("Content-Range")).toBe("bytes 4-7/12");
+  expect((await readVideo(new Request("http://localhost/generated/bad.mp4"), { params: Promise.resolve({ filename: "../secret" }) })).status).toBe(404);
 });

@@ -27,6 +27,7 @@ export function calculateStreak(records: CheckInRecord[], today = todayKey()): n
 }
 export function normalizeStore(store: AppStore, today = todayKey()): AppStore {
   const seed = createSeedStore();
+  const template = store.templates.find(t => t.id === store.plan?.templateId);
   const changedDay = store.taskDate !== today;
   const seen = new Set<string>();
   const checkIns = store.checkIns.filter(r => {
@@ -40,7 +41,8 @@ export function normalizeStore(store: AppStore, today = todayKey()): AppStore {
       tasks: store.plan.tasks.map(t => {
         const baseTitle = t.baseTitle ?? t.title.replace(/（加练）|（精简）/g, "");
         const original = seed.plan?.tasks.find(s => s.id === t.id);
-        const baseMinutes = t.baseMinutes ?? original?.baseMinutes ?? t.minutes;
+        const templateMinutes = template?.tasks.length ? Math.max(20, Math.round(template.dailyMinutes / template.tasks.length)) : undefined;
+        const baseMinutes = t.baseMinutes ?? original?.baseMinutes ?? templateMinutes ?? t.minutes;
         return { ...t, baseTitle, baseMinutes, done: changedDay ? false : t.done };
       }),
     } : null,

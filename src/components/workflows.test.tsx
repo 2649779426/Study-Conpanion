@@ -25,7 +25,7 @@ beforeEach(() => {
 });
 afterEach(async () => {
   await act(async () => root.unmount()); host.remove();
-  vi.useRealTimers(); vi.unstubAllGlobals();
+  vi.useRealTimers(); vi.unstubAllGlobals(); vi.restoreAllMocks();
 });
 async function renderAdmin() {
   await act(async () => root.render(<StoreProvider><Observe /><AdminPage /></StoreProvider>));
@@ -86,4 +86,17 @@ it("改过文案的播放器显示静态形象并朗读新文案，不播放旧�
   expect(host.textContent).toContain("文案已更新，视频待生成");
   await click("播放 / 重播");
   expect(speech.speak.mock.calls[0][0].text).toBe("小周，今天完成新的阅读任务。");
+});
+it("外部复盘信号切换后只播放复盘视频，不能沿用开场视频", async () => {
+  const seed = createSeedStore();
+  const played: string[] = [];
+  vi.spyOn(HTMLMediaElement.prototype, "play").mockImplementation(function (this: HTMLMediaElement) { played.push(this.getAttribute("src") || ""); return Promise.resolve(); });
+  vi.spyOn(HTMLMediaElement.prototype, "pause").mockImplementation(() => undefined);
+  await act(async () => root.render(<StoreProvider><DigitalHumanPlayer scripts={seed.scripts} userName="同学" /></StoreProvider>));
+  await settle();
+  await click("播放 / 重播");
+  expect(played).toEqual(["/videos/opening.mp4"]);
+  await act(async () => root.render(<StoreProvider><DigitalHumanPlayer scripts={seed.scripts} userName="同学" playSignal={{ scene: "review", token: 1 }} /></StoreProvider>));
+  await settle();
+  expect(played).toEqual(["/videos/opening.mp4", "/videos/review.mp4"]);
 });

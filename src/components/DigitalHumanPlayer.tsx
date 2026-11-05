@@ -62,7 +62,9 @@ export function DigitalHumanPlayer({ scripts, userName, defaultScene = "opening"
     setSource({ kind: "tts", label: "浏览器语音合成" });
     if (!window.speechSynthesis) { setPlaying(false); setStatus("当前浏览器不支持语音合成，可阅读下方完整文案"); return; }
     setPlaying(true); setStatus("正在朗读当前文案");
-    speakText(text, () => { setPlaying(false); setStatus("语音播报已结束；若未听到声音，请点击重播"); });
+    speakText(text, () => { setPlaying(false); setStatus("语音播报已结束"); }, reason => {
+      setPlaying(false); setStatus(`语音未能播放（${reason}），请点击重播或检查浏览器语音支持`);
+    });
   }, [text]);
 
   useEffect(() => {

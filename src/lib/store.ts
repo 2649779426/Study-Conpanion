@@ -1,5 +1,5 @@
 "use client";
-import { createSeedStore, STORAGE_KEY } from "./seed";
+import { createSeedStore, LEGACY_SCRIPT_TEXTS, STORAGE_KEY } from "./seed";
 import { todayKey, shiftDay, beijingTime } from "./date";
 import { pauseFocus, settleFocus, syncTaskFocus } from "./focus";
 import type { AppStore, CheckInRecord, PlanTemplate, ReminderRule, ScriptItem, VideoJob } from "./types";
@@ -42,6 +42,9 @@ export function normalizeStore(store: AppStore, today = todayKey()): AppStore {
   }).map(r => ({ ...r, allDone: r.allDone ?? false, totalTasks: r.totalTasks ?? 0 }));
   return syncTaskFocus({
     ...seed, ...store, checkIns, taskDate: today,
+    scripts: store.scripts.map(script => script.content === LEGACY_SCRIPT_TEXTS[script.scene]
+      ? { ...script, content: seed.scripts.find(s => s.scene === script.scene)!.content }
+      : script),
     // 自动提醒过窗后即使曾排队、刷新或跨天也不能补播；旧版无窗口的自动队列丢弃。
     broadcasts: store.broadcasts.filter(b => b.expiresAt ? b.expiresAt > Date.now() : !b.id.startsWith("rule-")),
     plan: store.plan ? {

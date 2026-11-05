@@ -1,7 +1,14 @@
-import type { AppStore } from "./types";
+import type { AppStore, ScriptScene } from "./types";
 import { todayKey } from "./date";
 
 export const STORAGE_KEY = "kaoyan-duxue-store-v1";
+
+/** 仅逐字相同的旧种子参与迁移，用户编辑过的内容保持原样。 */
+export const LEGACY_SCRIPT_TEXTS: Record<ScriptScene, string> = {
+  opening: "同学你好，我是你的考研督学助手。今天按计划推进，先从英语阅读开始。打开任务，打卡跟上节奏，我们一起把今天拿下。",
+  reminder: "提醒一下：今天该完成英语单词与阅读任务了。别拖延，完成后记得打卡。坚持住，离目标又近一步。",
+  review: "今天辛苦了。回顾一下已完成的任务，未完成的拆到明天。睡前把错题看一眼，明天继续稳步推进。",
+};
 
 export function createSeedStore(): AppStore {
   const today = todayKey();
@@ -70,7 +77,7 @@ export function createSeedStore(): AppStore {
         scene: "opening",
         title: "开场陪伴",
         content:
-          "同学你好，我是你的考研督学助手。今天按计划推进，先从英语阅读开始。打开任务，打卡跟上节奏，我们一起把今天拿下。",
+          "同学你好，我是你的督学学姐。今天的任务已经排好了，先从英语阅读开始。学完一项就点完成，我们一起把今天拿下。",
         updatedAt: today,
       },
       {
@@ -78,7 +85,7 @@ export function createSeedStore(): AppStore {
         scene: "reminder",
         title: "节点催学",
         content:
-          "提醒一下：今天该完成英语单词与阅读任务了。别拖延，完成后记得打卡。坚持住，离目标又近一步。",
+          "同学，下午两点了，政治马原错题回顾还没完成。先花四十分钟过一遍错题，做完回来打卡，学姐等你。",
         updatedAt: today,
       },
       {
@@ -86,7 +93,7 @@ export function createSeedStore(): AppStore {
         scene: "review",
         title: "晚间复盘",
         content:
-          "今天辛苦了。回顾一下已完成的任务，未完成的拆到明天。睡前把错题看一眼，明天继续稳步推进。",
+          "今天辛苦啦。打开学习成果，看看今天专注了多久。没做完的明天接着来，睡前把错题再看一眼，学姐明天继续陪你。",
         updatedAt: today,
       },
     ],

@@ -7,6 +7,35 @@ import type { CheckInRecord, StudyTask } from "./types";
 beforeEach(() => { vi.useFakeTimers(); vi.setSystemTime(new Date("2026-11-05T02:00:00Z")); });
 afterEach(() => vi.useRealTimers());
 
+describe("学姐话术迁移", () => {
+  const oldTexts = [
+    "同学你好，我是你的考研督学助手。今天按计划推进，先从英语阅读开始。打开任务，打卡跟上节奏，我们一起把今天拿下。",
+    "提醒一下：今天该完成英语单词与阅读任务了。别拖延，完成后记得打卡。坚持住，离目标又近一步。",
+    "今天辛苦了。回顾一下已完成的任务，未完成的拆到明天。睡前把错题看一眼，明天继续稳步推进。",
+  ];
+  const newTexts = [
+    "同学你好，我是你的督学学姐。今天的任务已经排好了，先从英语阅读开始。学完一项就点完成，我们一起把今天拿下。",
+    "同学，下午两点了，政治马原错题回顾还没完成。先花四十分钟过一遍错题，做完回来打卡，学姐等你。",
+    "今天辛苦啦。打开学习成果，看看今天专注了多久。没做完的明天接着来，睡前把错题再看一眼，学姐明天继续陪你。",
+  ];
+  it("旧种子原文按场景更新，保留标题和其他设置，重复加载不再变化", () => {
+    const store = createSeedStore();
+    store.scripts = store.scripts.map((s, i) => ({ ...s, content: oldTexts[i], title: `我的${s.scene}` })).reverse();
+    const migrated = normalizeStore(store);
+    expect([...migrated.scripts].reverse().map(s => s.content)).toEqual(newTexts);
+    expect(migrated.scripts.map(s => s.title)).toEqual(store.scripts.map(s => s.title));
+    expect(normalizeStore(migrated)).toEqual(migrated);
+  });
+  it("逐字保留用户编辑过的话术，包含仅改了标点或空格的内容", () => {
+    const store = createSeedStore();
+    store.scripts = store.scripts.map((s, i) => ({ ...s, content: oldTexts[i] + (i === 0 ? "加油。" : i === 1 ? " " : "！") }));
+    expect(normalizeStore(store).scripts).toEqual(store.scripts);
+  });
+  it("新建及重置的数据直接使用三条新种子原文", () => {
+    expect(createSeedStore().scripts.map(s => s.content)).toEqual(newTexts);
+  });
+});
+
 describe("打卡回归", () => {
   it("同一天重复提交覆盖当天记录，不增加连续天数", () => {
     const store = createSeedStore();

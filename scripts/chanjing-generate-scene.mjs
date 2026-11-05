@@ -3,6 +3,15 @@ import { resolve } from "node:path";
 
 const ROOT = resolve(import.meta.dirname, "..");
 const API_BASE = () => (process.env.CHANJING_API_BASE || "https://open-api.chanjing.cc/open/v1").replace(/\/$/, "");
+const OUT_DIR = resolve(ROOT, "../_codex/sample");
+let journalPath;
+let journal;
+
+function record(update) {
+  journal = { ...journal, ...update, updated_at: new Date().toISOString() };
+  writeFileSync(journalPath, JSON.stringify(journal, null, 2));
+  console.log(JSON.stringify({ scene: journal.scene, stage: journal.stage }));
+}
 
 function loadEnvLocal() {
   const path = resolve(ROOT, ".env.local");
@@ -86,6 +95,8 @@ async function waitVideo(token, videoId) {
 }
 
 async function generateOne(token, voice, person, figure, scene, text) {
+  // 请求前落盘，进程中断或响应不明时也禁止再次创建付费任务。
+  record({ stage: "audio_request_started" });
   const createdAudio = await api("/create_audio_task", {
     method: "POST",
     token,
@@ -95,7 +106,9 @@ async function generateOne(token, voice, person, figure, scene, text) {
       text: { text, plain_text: text },
     },
   });
+  record({ stage: "audio_created", audio_task_id: createdAudio.data.task_id });
   const audio = await waitAudio(token, createdAudio.data.task_id);
+  record({ stage: "video_request_started", audio_duration: audio.full.duration });
   const createdVideo = await api("/create_video", {
     method: "POST",
     token,
@@ -116,15 +129,16 @@ async function generateOne(token, voice, person, figure, scene, text) {
       hide_subtitle: true,
     },
   });
+  record({ stage: "video_created", video_id: createdVideo.data });
   const video = await waitVideo(token, createdVideo.data);
 
-  const outDir = resolve(ROOT, "../_codex/sample");
-  mkdirSync(outDir, { recursive: true });
-  const mp4Path = resolve(outDir, "reminder_xiaoyan.mp4");
+  const mp4Path = resolve(OUT_DIR, `${scene}_xiaoyan.mp4`);
   const mp4Res = await fetch(video.video_url);
   if (!mp4Res.ok) throw new Error(`download HTTP ${mp4Res.status}`);
   writeFileSync(mp4Path, Buffer.from(await mp4Res.arrayBuffer()), { flag: "wx" });
-  return { scene, text, audio_duration: audio.full.duration, video_duration: video.duration, saved_mp4: mp4Path, bytes_mp4: readFileSync(mp4Path).length };
+  const result = { scene, text, audio_duration: audio.full.duration, video_duration: video.duration, saved_mp4: mp4Path, bytes_mp4: readFileSync(mp4Path).length };
+  record({ stage: "completed", result });
+  return result;
 
 }
 
@@ -134,24 +148,42 @@ async function main() {
     throw new Error("missing credentials");
   }
 
-  if (process.argv[2] !== "reminder" || process.argv.length !== 3) throw new Error("仅允许显式指定 reminder 样片");
-  const output = resolve(ROOT, "../_codex/sample/reminder_xiaoyan.mp4");
-  if (existsSync(output)) throw new Error("样片文件已存在，停止以免重复生成");
+  const scene = process.argv[2];
+  if (!["opening", "review"].includes(scene) || process.argv.length !== 3) throw new Error("第五轮仅允许显式指定 opening 或 review；reminder 必须复用已有样片");
+  const output = resolve(OUT_DIR, `${scene}_xiaoyan.mp4`);
+  journalPath = resolve(OUT_DIR, `${scene}_r5_generation.json`);
+  if (existsSync(output) || existsSync(journalPath)) throw new Error("该场景已有文件或尝试记录，停止以免重复生成");
+  for (const other of ["opening", "review"]) {
+    const otherPath = resolve(OUT_DIR, `${other}_r5_generation.json`);
+    if (existsSync(otherPath) && JSON.parse(readFileSync(otherPath, "utf8")).stage !== "completed") {
+      throw new Error("第五轮已有失败或未完成的尝试，停止全部生成，不重试");
+    }
+  }
   const { getAvatarConfig } = await import("../src/lib/chanjing/avatar.ts");
   const avatar = getAvatarConfig();
-  const text = "同学，下午两点了，政治马原错题回顾还没完成。先花四十分钟过一遍错题，做完回来打卡，学姐等你。";
+  if (avatar.personId !== "a6d13c6ccdf342d5a3f80a79218346e5" || avatar.audioManId !== "C-CASE-25ae6403a1364c2ba88dad7aec4567c1") {
+    throw new Error("当前配置不是已确认的晓妍-青春 / 带货小悦，停止生成");
+  }
+  // 从 seed.ts 读取该场景原文，避免维护两份生成话术。
+  const seedSource = readFileSync(resolve(ROOT, "src/lib/seed.ts"), "utf8");
+  const text = seedSource.match(new RegExp(`scene: "${scene}",[\\s\\S]*?content:\\s*"([^"\\n]+)"`))?.[1];
+  if (!text) throw new Error("无法从 seed.ts 读取话术，停止生成");
+  mkdirSync(OUT_DIR, { recursive: true });
+  journal = { scene, text, person_id: avatar.personId, voice_id: avatar.audioManId, person: avatar.personName, voice: avatar.audioName, stage: "prepared" };
+  writeFileSync(journalPath, JSON.stringify(journal, null, 2), { flag: "wx" });
   const tokenJson = await api("/access_token", {
     method: "POST", body: { app_id: process.env.CHANJING_APP_ID, secret_key: process.env.CHANJING_SECRET_KEY },
   });
   const token = tokenJson.data.access_token;
   if (!token) throw new Error("蝉镜未返回 access_token");
   const result = await generateOne(token, { id: avatar.audioManId }, { id: avatar.personId },
-    { type: avatar.figureType, width: avatar.width, height: avatar.height }, "reminder", text);
+    { type: avatar.figureType, width: avatar.width, height: avatar.height }, scene, text);
   console.log(JSON.stringify({ person: avatar.personName, voice: avatar.audioName, result }, null, 2));
 
 }
 
 main().catch((err) => {
+  if (journal) record({ stage: "failed", error: err.message });
   console.error(JSON.stringify({ error: err.message }, null, 2));
   process.exit(1);
 });

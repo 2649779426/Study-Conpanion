@@ -16,6 +16,7 @@ const menu = [
       { href: "/", label: "今日督学", icon: "/home.png" },
       { href: "/plan", label: "学习计划", icon: "/lesson.png" },
       { href: "/checkin", label: "进度打卡", icon: "/attendance.png" },
+      { href: "/review", label: "学习成果", icon: "/lesson.png" },
       { href: "/admin", label: "后台配置", icon: "/setting.png" },
     ],
   },

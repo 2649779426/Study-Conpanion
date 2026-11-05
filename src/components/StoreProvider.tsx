@@ -3,6 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { adjustPlanByProgress, applyTemplate, loadStore, saveStore, submitCheckIn, toggleTask, upsertRule, upsertScript, normalizeStore, triggerRule, noticeKey, updateVideoJob } from "@/lib/store";
 import { createSeedStore } from "@/lib/seed";
 import { startFocus, pauseFocus } from "@/lib/focus";
+import { clearSampleRecords, loadSampleRecords } from "@/lib/samples";
 import type { AppStore, PlanTemplate, ReminderRule, ScriptItem, ScriptScene, VideoJob } from "@/lib/types";
 
 type StoreApi = {
@@ -11,6 +12,7 @@ type StoreApi = {
   chooseTemplate: (template: PlanTemplate, userName?: string) => void;
   toggleTask: (id: string) => void; checkIn: (note: string) => void;
   startFocus: (id: string) => void; pauseFocus: () => void; endFocus: () => void;
+  loadSamples: () => void; clearSamples: () => void;
   saveScript: (script: ScriptItem) => void; saveRule: (rule: ReminderRule) => void;
   tryRule: (rule: ReminderRule) => void; dismissBroadcast: () => void;
   markRead: (panel: "message" | "notice") => void; resetDemo: () => void;
@@ -76,6 +78,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     startFocus: id => mutate(s => startFocus(normalizeStore(s), id)),
     pauseFocus: () => mutate(s => pauseFocus(normalizeStore(s))),
     endFocus: () => mutate(s => pauseFocus(normalizeStore(s))),
+    loadSamples: () => mutate(s => loadSampleRecords(normalizeStore(s))),
+    clearSamples: () => mutate(s => clearSampleRecords(normalizeStore(s))),
     checkIn: note => mutate(s => adjustPlanByProgress(submitCheckIn(s, note))),
     saveScript: script => mutate(s => upsertScript(s, script)),
     saveRule: rule => mutate(s => upsertRule(s, rule)),

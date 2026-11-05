@@ -9,6 +9,7 @@ import { DigitalHumanPlayer } from "./DigitalHumanPlayer";
 import { AppShell } from "./AppShell";
 import HomePage from "@/app/page";
 import CheckInPage from "@/app/checkin/page";
+import ReviewPage from "@/app/review/page";
 
 // DOM 模拟，不启动浏览器；只替换 Next 图片渲染和外部网络/媒体接口。
 vi.mock("next/image", () => ({ default: (props: { alt: string }) => <span>{props.alt}</span> }));
@@ -180,4 +181,83 @@ it("外部复盘信号切换后只播放复盘视频，不能沿用开场视频"
   await act(async () => root.render(<StoreProvider><DigitalHumanPlayer scripts={seed.scripts} userName="同学" playSignal={{ scene: "review", token: 1 }} /></StoreProvider>));
   await settle();
   expect(played).toEqual(["/videos/opening.mp4", "/videos/review.mp4"]);
+});
+
+it("首页开始、打卡页暂停并刷新恢复，只能一个任务计时且复盘显示实际分钟", async () => {
+  vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue(undefined);
+  vi.spyOn(HTMLMediaElement.prototype, "pause").mockImplementation(() => undefined);
+  await act(async () => root.render(<StoreProvider><Observe /><HomePage /></StoreProvider>));
+  await settle();
+  await click("开始专注");
+  await act(async () => { await vi.advanceTimersByTimeAsync(65000); });
+  expect(host.textContent).toContain("计划 60 分钟 · 已专注 1 分钟");
+  await act(async () => root.render(<StoreProvider><Observe /><CheckInPage /></StoreProvider>));
+  await settle(); await click("暂停");
+  expect(api.store!.focus).toBeNull();
+  expect(api.store!.plan!.tasks[0].actualSeconds).toBeGreaterThanOrEqual(65);
+  await click("继续专注");
+  await act(async () => { await vi.advanceTimersByTimeAsync(10000); });
+  await act(async () => root.unmount()); root = createRoot(host);
+  await act(async () => root.render(<StoreProvider><Observe /><CheckInPage /></StoreProvider>));
+  await settle();
+  expect(api.store!.focus?.taskId).toBe("t1");
+  expect(host.querySelectorAll('[role="timer"]')).toHaveLength(1);
+  await click("开始专注");
+  expect(api.store!.focus?.taskId).toBe("t2");
+  expect(host.querySelectorAll('[role="timer"]')).toHaveLength(1);
+  await click("结束");
+  await click("提交打卡");
+  expect(host.textContent).toContain("今天专注 1 分钟，完成 0/4 项");
+  expect(api.store!.checkIns[0].subjectSeconds!.英语).toBeGreaterThanOrEqual(75);
+});
+
+it.each(["/", "/checkin", "/review"])("%s 中示例数据醒目标记，清除后标签消失且保留真实打卡", async path => {
+  navigation.path = path;
+  const Page = path === "/" ? HomePage : path === "/checkin" ? CheckInPage : ReviewPage;
+  await act(async () => root.render(<StoreProvider><Observe /><Page /></StoreProvider>));
+  await settle();
+  await act(async () => { api.checkIn("真实备注"); api.loadSamples(); });
+  expect(host.textContent).toContain("含示例数据");
+  await click("清除示例数据");
+  expect(host.textContent).not.toContain("含示例数据");
+  expect(api.store!.checkIns).toHaveLength(1);
+  expect(api.store!.checkIns[0].note).toBe("真实备注");
+});
+
+it("学习成果空态、示例柱图和时间线可展开，浏览器朗读小结且离页停止", async () => {
+  const speech = { cancel: vi.fn(), speak: vi.fn() };
+  vi.stubGlobal("speechSynthesis", speech);
+  vi.stubGlobal("SpeechSynthesisUtterance", class { text: string; constructor(text: string) { this.text = text; } });
+  await act(async () => root.render(<StoreProvider><Observe /><ReviewPage /></StoreProvider>));
+  await settle();
+  expect(host.textContent).toContain("你的第一份学习成果");
+  expect(host.querySelectorAll(".review-day")).toHaveLength(14);
+  await act(async () => api.loadSamples());
+  expect(host.querySelector(".review-empty")).toBeNull();
+  expect(host.querySelectorAll(".review-timeline details").length).toBeGreaterThan(5);
+  expect(host.querySelectorAll(".subject-bar")).toHaveLength(4);
+  const day = host.querySelector<HTMLButtonElement>(".review-day")!;
+  await act(async () => day.click());
+  expect(day.getAttribute("aria-pressed")).toBe("true");
+  expect(host.querySelector(".review-chart-detail")?.textContent).toContain(day.getAttribute("aria-label")!.slice(0, 10));
+  await click("让督学助手读给我听");
+  expect(speech.speak.mock.calls[0][0].text).toContain("本周专注");
+  expect(host.textContent).toContain("来源：浏览器语音合成");
+  await click("停止朗读");
+  expect(host.textContent).toContain("已停止朗读");
+  await click("让督学助手读给我听");
+  const calls = speech.cancel.mock.calls.length;
+  await act(async () => root.render(<StoreProvider><Observe /><div>已离页</div></StoreProvider>));
+  expect(speech.cancel.mock.calls.length).toBeGreaterThan(calls);
+});
+
+it("后台载入样例并重置，清空专注及示例记录", async () => {
+  await renderAdmin();
+  await click("载入示例学习记录（14 天）");
+  expect(api.store!.checkIns.some(r => r.sample)).toBe(true);
+  await act(async () => api.startFocus("t1"));
+  await click("重置演示数据"); await click("确认重置");
+  expect(api.store!.focus).toBeNull();
+  expect(api.store!.focusRecords).toEqual([]);
+  expect(api.store!.checkIns).toEqual([]);
 });

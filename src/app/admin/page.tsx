@@ -6,6 +6,7 @@ import type { ReminderRule, ScriptItem, ScriptScene } from "@/lib/types";
 import { useAppStore } from "@/hooks/useAppStore";
 import { todayKey } from "@/lib/date";
 import { VideoGeneration } from "@/components/VideoGeneration";
+import { SampleDataBanner } from "@/components/SampleDataBanner";
 
 const scenes: { value: ScriptScene; label: string }[] = [
   { value: "opening", label: "开场" },
@@ -14,7 +15,7 @@ const scenes: { value: ScriptScene; label: string }[] = [
 ];
 
 export default function AdminPage() {
-  const { store, ready, saveScript, saveRule, tryRule, resetDemo } = useAppStore();
+  const { store, ready, saveScript, saveRule, tryRule, resetDemo, loadSamples } = useAppStore();
   const { show } = useToast();
   const [scriptForm, setScriptForm] = useState<ScriptItem | null>(null);
   const [ruleForm, setRuleForm] = useState<ReminderRule | null>(null);
@@ -225,6 +226,9 @@ export default function AdminPage() {
 
         <div className="generation-box">
           <h2>演示数据</h2>
+          <p className="muted">补充过去 13 天的示例记录（近 14 天窗口，今天不动，偶有断签），不覆盖已有真实记录；所有示例均醒目标注，可随时清除。</p>
+          <button type="button" className="btn purple" onClick={() => { loadSamples(); show("示例学习记录已载入，含示例数据的统计均有标签"); }}>载入示例学习记录（14 天）</button>
+          <SampleDataBanner />
           <p className="muted">重置本浏览器的称呼、任务、打卡、消息与配置；服务端已生成视频保留。</p>
           {confirmReset ? <div role="alert" className="row">
             <span>确定恢复初始演示数据？当前本地记录将清空。</span>

@@ -14,7 +14,7 @@ export function StudyTaskItem({ task }: { task: StudyTask }) {
     return () => clearInterval(timer);
   }, [active]);
   if (!store) return null;
-  const seconds = taskFocusSeconds(store, task.id, active ? Math.max(now, store.focus!.startedAt) : Date.now());
+  const seconds = active ? taskFocusSeconds(store, task.id, Math.max(now, store.focus!.startedAt)) : task.actualSeconds ?? 0;
   return <div className={`task-item focus-task ${task.done ? "done" : ""} ${active ? "is-focusing" : ""}`}>
     <button type="button" className="task-toggle" onClick={() => toggleTask(task.id)} aria-pressed={task.done}>
       <span><b>{task.title}</b><span className="muted task-time">{task.subject} · 计划 {task.minutes} 分钟 · 已专注 {Math.floor(seconds / 60)} 分钟</span></span>

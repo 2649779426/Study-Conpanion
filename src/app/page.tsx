@@ -7,6 +7,7 @@ import { ScheduledPlayer } from "@/components/ScheduledPlayer";
 import { useToast } from "@/components/DemoToast";
 import { useAppStore } from "@/hooks/useAppStore";
 import { StudyTaskItem } from "@/components/StudyTaskItem";
+import { SampleDataBanner } from "@/components/SampleDataBanner";
 
 export default function HomePage() {
   const { store, ready } = useAppStore();
@@ -25,6 +26,7 @@ export default function HomePage() {
 
   return (
     <>
+      <SampleDataBanner />
       <div className="stats-row">
         <button
           type="button"

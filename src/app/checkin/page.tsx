@@ -7,6 +7,7 @@ import { useAppStore } from "@/hooks/useAppStore";
 import type { ScriptScene } from "@/lib/types";
 import { shiftDay, todayKey } from "@/lib/date";
 import { StudyTaskItem } from "@/components/StudyTaskItem";
+import { SampleDataBanner } from "@/components/SampleDataBanner";
 
 export default function CheckInPage() {
   const { store, ready, checkIn } = useAppStore();
@@ -83,8 +84,9 @@ export default function CheckInPage() {
         ) : null}
 
         <div className="section-head" style={{ marginTop: 24 }}><h2>近 7 天完成情况</h2></div>
-        <p className="muted">仅统计实际提交记录；同日重复提交会更新当天。全部完成才计入连续打卡。</p>
-        <div className="history-chart" aria-label="近七天真实打卡完成率">
+        <SampleDataBanner />
+        <p className="muted">统计已保存的打卡记录（含明确标注的示例）；同日重复提交会更新当天。全部完成才计入连续打卡。</p>
+        <div className="history-chart" aria-label="近七天打卡完成率">
           {Array.from({ length: 7 }, (_, index) => {
             const day = shiftDay(todayKey(), index - 6);
             const record = store.checkIns.find(r => r.date === day);
@@ -114,7 +116,7 @@ export default function CheckInPage() {
             <tbody>
               {store.checkIns.slice(0, 8).map((item) => (
                 <tr key={item.id}>
-                  <td>{item.date}</td>
+                  <td>{item.date}{item.sample ? <span className="pill warn">示例</span> : null}</td>
                   <td>{item.taskIds.length}</td>
                   <td>{item.note}</td>
                 </tr>

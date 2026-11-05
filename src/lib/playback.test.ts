@@ -4,6 +4,14 @@ import { createSeedStore } from "./seed";
 import { PRESET_AVATAR } from "./chanjing/identity";
 
 describe("按最终文案选片", () => {
+  it("晓妍和带货小悦命中三条新预置，旧学长形象全部降级", async () => {
+    const xiaoyan = { personId: "a6d13c6ccdf342d5a3f80a79218346e5", audioManId: "C-CASE-25ae6403a1364c2ba88dad7aec4567c1" };
+    const oldAvatar = { personId: "1421df93d7754ee19dcaa18e85b68f39", audioManId: "C-CASE-14b71dd114fb4048ac35790979df2360" };
+    for (const script of createSeedStore().scripts) {
+      expect(await selectPlayback(script.scene, script.content, [], xiaoyan)).toMatchObject({ kind: "preset", url: `/videos/${script.scene}.mp4` });
+      expect((await selectPlayback(script.scene, script.content, [], oldAvatar)).kind).toBe("tts");
+    }
+  });
   it("换形象或换音色后，即使场景和文案相同也不能复用生成视频", async () => {
     const avatar = { personId: "person-a", audioManId: "voice-a" };
     const hash = await videoHash("opening", "小周加油", avatar);

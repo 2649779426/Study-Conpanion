@@ -28,7 +28,7 @@ beforeEach(() => {
   vi.useFakeTimers(); vi.setSystemTime(new Date("2026-11-04T16:10:00Z"));
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
   localStorage.clear();
-  // 历史播放器流程仍用文昊预置身份；另测当前晓妍/覆盖配置拒绝旧视频。
+  // 播放器流程使用当前晓妍预置身份；另测不匹配身份与配置读取失败的降级。
   vi.stubGlobal("fetch", vi.fn(async (input: string) => Response.json(String(input).includes("/status") ? { configured: false, avatar: PRESET_AVATAR } : { ok: true, job: null })));
   host = document.createElement("div"); document.body.appendChild(host); root = createRoot(host);
 });
@@ -171,10 +171,17 @@ it("改过文案的播放器显示静态形象并朗读新文案，不播放旧�
   await click("播放 / 重播");
   expect(speech.speak.mock.calls[0][0].text).toBe("小周，今天完成新的阅读任务。");
 });
-it("服务端覆盖为晓妍时种子文案也拒绝文昊视频，配置失败则保守回退", async () => {
+it("晓妍配置命中新预置，旧文昊配置和配置读取失败均保守回退", async () => {
   const avatar = { personId: "a6d13c6ccdf342d5a3f80a79218346e5", audioManId: "C-CASE-25ae6403a1364c2ba88dad7aec4567c1" };
   vi.stubGlobal("fetch", vi.fn(async (input: string) => Response.json(String(input).includes("/status") ? { configured: true, avatar } : { ok: true, job: null })));
   const seed = createSeedStore();
+  await act(async () => root.render(<StoreProvider><DigitalHumanPlayer scripts={seed.scripts} userName="同学" /></StoreProvider>));
+  await settle();
+  expect(host.querySelector("video")?.getAttribute("src")).toBe("/videos/opening.mp4");
+  expect(host.textContent).toContain("蝉镜数字人 · 预生成");
+  await act(async () => root.unmount()); root = createRoot(host);
+  const oldAvatar = { personId: "1421df93d7754ee19dcaa18e85b68f39", audioManId: "C-CASE-14b71dd114fb4048ac35790979df2360" };
+  vi.stubGlobal("fetch", vi.fn(async (input: string) => Response.json(String(input).includes("/status") ? { configured: true, avatar: oldAvatar } : { ok: true, job: null })));
   await act(async () => root.render(<StoreProvider><DigitalHumanPlayer scripts={seed.scripts} userName="同学" /></StoreProvider>));
   await settle();
   expect(host.querySelector("video")).toBeNull();

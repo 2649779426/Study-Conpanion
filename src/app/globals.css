@@ -814,3 +814,12 @@ select {
 .history-day { text-align: center; font-size: 11px; color: #666; }
 .history-track { height: 90px; display: flex; align-items: flex-end; border-radius: 6px; overflow: hidden; margin: 8px 0; background: var(--lama-purple-light, #f3f0ff); }
 .history-track > div { width: 100%; background: var(--lama-purple, #c5b3ff); }
+
+.focus-task { display: block; padding: 12px; }
+.task-toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; border: 0; padding: 0; background: transparent; text-align: left; cursor: pointer; }
+.task-toggle b { display: block; }
+.task-time { display: block; margin-top: 5px; font-size: 12px; }
+.focus-controls { margin-top: 10px; }
+.focus-controls .btn { padding: 6px 12px; font-size: 12px; }
+.is-focusing { box-shadow: inset 0 0 0 2px #8b5cf6; }
+.focus-clock { font-size: 12px; font-variant-numeric: tabular-nums; color: #6d28d9; }

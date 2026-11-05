@@ -9,6 +9,9 @@ export function createSeedStore(): AppStore {
   return {
     userName: "同学",
     taskDate: today,
+    focus: null,
+    focusRecords: [],
+    focusRemainders: {},
     triggeredRules: {},
     missedRules: {},
     messages: [],

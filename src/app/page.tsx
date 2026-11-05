@@ -6,9 +6,10 @@ import { useRouter } from "next/navigation";
 import { ScheduledPlayer } from "@/components/ScheduledPlayer";
 import { useToast } from "@/components/DemoToast";
 import { useAppStore } from "@/hooks/useAppStore";
+import { StudyTaskItem } from "@/components/StudyTaskItem";
 
 export default function HomePage() {
-  const { store, ready, toggleTask } = useAppStore();
+  const { store, ready } = useAppStore();
   const router = useRouter();
   const { show } = useToast();
 
@@ -113,25 +114,7 @@ export default function HomePage() {
             </div>
             <div className="task-list">
               {plan?.tasks.map((task) => (
-                <button
-                  key={task.id}
-                  type="button"
-                  className={task.done ? "task-item done" : "task-item"}
-                  onClick={() => {
-                    toggleTask(task.id);
-                    show(task.done ? `取消完成：${task.title}` : `已完成：${task.title}`);
-                  }}
-                >
-                  <div>
-                    <b>{task.title}</b>
-                    <span className="muted" style={{ fontSize: 12 }}>
-                      {task.subject} · {task.minutes} 分钟
-                    </span>
-                  </div>
-                  <span className={task.done ? "pill ok" : "pill warn"}>
-                    {task.done ? "已完成" : "待执行"}
-                  </span>
-                </button>
+                <StudyTaskItem key={task.id} task={task} />
               ))}
             </div>
           </section>

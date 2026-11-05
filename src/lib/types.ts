@@ -34,6 +34,8 @@ export type StudyTask = {
   done: boolean;
   baseTitle: string;
   baseMinutes: number;
+  actualSeconds?: number;
+  actualMinutes?: number;
 };
 
 export type StudyPlan = {
@@ -54,7 +56,19 @@ export type CheckInRecord = {
   createdAt: string;
   totalTasks: number;
   allDone: boolean;
+  sample?: boolean;
+  subjectSeconds?: Record<string, number>;
+  subjectPlannedMinutes?: Record<string, number>;
+  plannedMinutes?: number;
+  tasks?: StudyTask[];
+  adjustments?: { taskId: string; title: string; mode: "加练" | "精简"; before: number; after: number }[];
 };
+
+export type FocusRecord = {
+  id: string; date: string; taskId: string; subject: string; seconds: number;
+  taskTitle?: string; sample?: boolean;
+};
+export type FocusSession = { taskId: string; subject: string; taskTitle: string; startedAt: number };
 
 export type AppMessage = {
   id: string;
@@ -85,6 +99,9 @@ export type AppStore = {
   templates: PlanTemplate[];
   rules: ReminderRule[];
   checkIns: CheckInRecord[];
+  focus: FocusSession | null;
+  focusRecords: FocusRecord[];
+  focusRemainders: Record<string, number>;
   taskDate: string;
   triggeredRules: Record<string, string>;
   missedRules: Record<string, string>;

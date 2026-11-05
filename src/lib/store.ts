@@ -1,6 +1,7 @@
 "use client";
 import { createSeedStore, STORAGE_KEY } from "./seed";
 import { todayKey, shiftDay, beijingTime } from "./date";
+import { pauseFocus, settleFocus, syncTaskFocus } from "./focus";
 import type { AppStore, CheckInRecord, PlanTemplate, ReminderRule, ScriptItem, VideoJob } from "./types";
 
 export function loadStore(): AppStore {
@@ -27,6 +28,11 @@ export function calculateStreak(records: CheckInRecord[], today = todayKey()): n
 }
 export function normalizeStore(store: AppStore, today = todayKey()): AppStore {
   const seed = createSeedStore();
+  store = { ...seed, ...store, focus: store.focus ?? null,
+    focusRecords: store.focusRecords ?? [], focusRemainders: store.focusRemainders ?? {} };
+  if (store.focus && todayKey(new Date(store.focus.startedAt)) < today) {
+    store = settleFocus(store, new Date(`${today}T00:00:00+08:00`).getTime(), true);
+  }
   const template = store.templates.find(t => t.id === store.plan?.templateId);
   const changedDay = store.taskDate !== today;
   const seen = new Set<string>();
@@ -34,7 +40,7 @@ export function normalizeStore(store: AppStore, today = todayKey()): AppStore {
     if (seen.has(r.date)) return false;
     seen.add(r.date); return true;
   }).map(r => ({ ...r, allDone: r.allDone ?? false, totalTasks: r.totalTasks ?? 0 }));
-  return {
+  return syncTaskFocus({
     ...seed, ...store, checkIns, taskDate: today,
     // 自动提醒过窗后即使曾排队、刷新或跨天也不能补播；旧版无窗口的自动队列丢弃。
     broadcasts: store.broadcasts.filter(b => b.expiresAt ? b.expiresAt > Date.now() : !b.id.startsWith("rule-")),
@@ -48,10 +54,10 @@ export function normalizeStore(store: AppStore, today = todayKey()): AppStore {
         return { ...t, baseTitle, baseMinutes, done: changedDay ? false : t.done };
       }),
     } : null,
-  };
+  }, today);
 }
 export function applyTemplate(store: AppStore, template: PlanTemplate, userName?: string): AppStore {
-  store = normalizeStore(store);
+  store = pauseFocus(normalizeStore(store));
   return {
     ...store, userName: userName?.trim() || store.userName,
     plan: {
@@ -77,13 +83,23 @@ export function addMessage(store: AppStore, id: string, text: string): AppStore 
   ] };
 }
 export function submitCheckIn(store: AppStore, note: string): AppStore {
-  store = normalizeStore(store);
+  store = pauseFocus(normalizeStore(store));
   if (!store.plan || !store.plan.tasks.length) return store;
   const today = todayKey();
   const taskIds = store.plan.tasks.filter(t => t.done).map(t => t.id);
+  const subjectSeconds: Record<string, number> = {};
+  for (const r of store.focusRecords.filter(r => r.date === today)) {
+    subjectSeconds[r.subject] = (subjectSeconds[r.subject] ?? 0) + r.seconds;
+  }
+  const subjectPlannedMinutes: Record<string, number> = {};
+  for (const t of store.plan.tasks) subjectPlannedMinutes[t.subject] = (subjectPlannedMinutes[t.subject] ?? 0) + t.minutes;
   const record: CheckInRecord = {
     id: `check-${today}`, date: today, taskIds, totalTasks: store.plan.tasks.length,
     allDone: store.plan.tasks.every(t => t.done), note, createdAt: new Date().toISOString(),
+    subjectSeconds, subjectPlannedMinutes,
+    plannedMinutes: store.plan.tasks.reduce((n, t) => n + t.minutes, 0),
+    tasks: store.plan.tasks.map(t => ({ ...t })),
+    adjustments: store.checkIns.find(r => r.date === today)?.adjustments ?? [],
   };
   const checkIns = [record, ...store.checkIns.filter(r => r.date !== today)].sort((a, b) => b.date.localeCompare(a.date));
   return addMessage({ ...store, checkIns, plan: { ...store.plan, streak: calculateStreak(checkIns) } },
@@ -103,12 +119,17 @@ export function adjustPlanByProgress(store: AppStore): AppStore {
   store = normalizeStore(store);
   if (!store.plan) return store;
   const ratio = store.plan.tasks.filter(t => t.done).length / (store.plan.tasks.length || 1);
-  return { ...store, plan: { ...store.plan, tasks: store.plan.tasks.map(t => {
+  const adjustments: NonNullable<CheckInRecord["adjustments"]> = [];
+  const tasks = store.plan.tasks.map(t => {
     if (t.done) return t;
     const mode = ratio >= .75 ? "加练" : ratio > 0 && ratio < .4 ? "精简" : "";
+    const minutes = mode === "加练" ? t.baseMinutes + 10 : mode === "精简" ? Math.max(15, t.baseMinutes - 10) : t.baseMinutes;
+    if (mode) adjustments.push({ taskId: t.id, title: t.baseTitle, mode, before: t.baseMinutes, after: minutes });
     return { ...t, title: t.baseTitle + (mode ? `（${mode}）` : ""),
-      minutes: mode === "加练" ? t.baseMinutes + 10 : mode === "精简" ? Math.max(15, t.baseMinutes - 10) : t.baseMinutes };
-  }) } };
+      minutes };
+  });
+  return { ...store, plan: { ...store.plan, tasks }, checkIns: store.checkIns.map(r => r.date === todayKey()
+    ? { ...r, adjustments: [...(r.adjustments ?? []).filter(old => !adjustments.some(a => a.taskId === old.taskId)), ...adjustments] } : r) };
 }
 export function shouldTriggerRule(store: AppStore, rule: ReminderRule, now = new Date()): boolean {
   const elapsed = ruleElapsed(rule, now);

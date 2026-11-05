@@ -6,9 +6,10 @@ import { useToast } from "@/components/DemoToast";
 import { useAppStore } from "@/hooks/useAppStore";
 import type { ScriptScene } from "@/lib/types";
 import { shiftDay, todayKey } from "@/lib/date";
+import { StudyTaskItem } from "@/components/StudyTaskItem";
 
 export default function CheckInPage() {
-  const { store, ready, toggleTask, checkIn } = useAppStore();
+  const { store, ready, checkIn } = useAppStore();
   const { show } = useToast();
   const [note, setNote] = useState("");
   const [message, setMessage] = useState("");
@@ -39,25 +40,7 @@ export default function CheckInPage() {
 
         <div className="task-list" style={{ marginTop: 14 }}>
           {store.plan?.tasks.map((task) => (
-            <button
-              key={task.id}
-              type="button"
-              className={task.done ? "task-item done" : "task-item"}
-              onClick={() => {
-                toggleTask(task.id);
-                show(task.done ? `取消完成：${task.title}` : `已完成：${task.title}`);
-              }}
-            >
-              <div>
-                <b>{task.title}</b>
-                <span className="muted" style={{ fontSize: 12 }}>
-                  {task.subject} · {task.minutes} 分钟
-                </span>
-              </div>
-              <span className={task.done ? "pill ok" : "pill warn"}>
-                {task.done ? "已完成" : "点击完成"}
-              </span>
-            </button>
+            <StudyTaskItem key={task.id} task={task} />
           ))}
         </div>
 

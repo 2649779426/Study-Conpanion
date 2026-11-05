@@ -1,7 +1,14 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 const disk = vi.hoisted(() => new Map<string, string | Uint8Array>());
+const ffmpeg = vi.hoisted(() => ({ fail: false }));
 vi.mock("server-only", () => ({}));
+vi.mock("node:child_process", () => ({
+  execFile: (_command: string, args: string[], _options: unknown, callback: (error: Error | null) => void) => {
+    if (ffmpeg.fail) callback(Object.assign(new Error("ffmpeg unavailable"), { code: "ENOENT" }));
+    else { disk.set(args.at(-1)!, new Uint8Array([255, 216, 255, 217])); callback(null); }
+  },
+}));
 vi.mock("node:fs/promises", () => ({
   mkdir: async () => undefined,
   readFile: async (path: string) => { if (!disk.has(path)) throw Object.assign(new Error("missing"), { code: "ENOENT" }); return disk.get(path); },
@@ -15,6 +22,7 @@ import { GET as queryJob, POST } from "@/app/api/chanjing/broadcast/route";
 import { GET as readVideo } from "@/app/generated/[filename]/route";
 
 beforeEach(() => {
+  ffmpeg.fail = false;
   disk.clear(); vi.stubEnv("CHANJING_APP_ID", "test-app"); vi.stubEnv("CHANJING_SECRET_KEY", "test-key");
   vi.useFakeTimers(); vi.setSystemTime(new Date("2026-11-05T02:00:00Z"));
 });
@@ -63,6 +71,8 @@ it("POST 只创建语音任务，后续 GET 推进且视频下载成功才完成
   const done = await advanceJob(job.jobId);
   expect(done?.status).toBe("completed");
   expect(done?.url).toBe(`/generated/${job.hash}.mp4`);
+  expect(done?.poster).toBe(`/generated/${job.hash}.jpg`);
+  expect((await getJob(job.jobId))?.poster).toBe(`/generated/${job.hash}.jpg`);
   expect(Array.from(disk.keys()).some(p => p.endsWith(`${job.hash}.mp4`))).toBe(true);
   expect((await getJob(job.jobId))?.status).toBe("completed");
   vi.resetModules();
@@ -106,5 +116,22 @@ it("本地视频路由读取下载文件、支持 Range 并阻止路径穿越", 
   expect(result.status).toBe(206);
   expect(await result.text()).toBe("ftyp");
   expect(result.headers.get("Content-Range")).toBe("bytes 4-7/12");
+  const cover = await readVideo(new Request(`http://localhost/generated/${job.hash}.jpg`), { params: Promise.resolve({ filename: `${job.hash}.jpg` }) });
+  expect(cover.status).toBe(200);
+  expect(cover.headers.get("Content-Type")).toBe("image/jpeg");
+  expect(new Uint8Array(await cover.arrayBuffer())).toEqual(new Uint8Array([255, 216, 255, 217]));
+  expect((await readVideo(new Request("http://localhost"), { params: Promise.resolve({ filename: `${job.hash}.png` }) })).status).toBe(404);
   expect((await readVideo(new Request("http://localhost/generated/bad.mp4"), { params: Promise.resolve({ filename: "../secret" }) })).status).toBe(404);
+});
+it("ffmpeg 不可用时视频正常完成且不提供不存在的封面，封面请求为 404", async () => {
+  ffmpeg.fail = true;
+  apiMock();
+  const job = await createJob("opening", "小周你好");
+  for (let i = 0; i < 3; i++) { vi.advanceTimersByTime(6000); await advanceJob(job.jobId); }
+  const done = await getJob(job.jobId);
+  expect(done?.status).toBe("completed");
+  expect(done?.poster).toBeUndefined();
+  expect(done?.error).toBeUndefined();
+  const response = await readVideo(new Request("http://localhost"), { params: Promise.resolve({ filename: `${job.hash}.jpg` }) });
+  expect(response.status).toBe(404);
 });

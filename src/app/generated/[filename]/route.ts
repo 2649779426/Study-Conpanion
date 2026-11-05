@@ -5,10 +5,10 @@ import { VIDEO_ROOT } from "@/lib/chanjing/jobs";
 export const runtime = "nodejs";
 export async function GET(request: Request, { params }: { params: Promise<{ filename: string }> }) {
   const { filename } = await params;
-  if (!/^[a-f0-9]{64}\.mp4$/.test(filename)) return new Response("Not found", { status: 404 });
+  if (!/^[a-f0-9]{64}\.(mp4|jpg)$/.test(filename)) return new Response("Not found", { status: 404 });
   try {
     const bytes = await readFile(join(VIDEO_ROOT, filename));
-    const headers = { "Content-Type": "video/mp4", "Accept-Ranges": "bytes", "Cache-Control": "private, max-age=3600" };
+    const headers = { "Content-Type": filename.endsWith(".jpg") ? "image/jpeg" : "video/mp4", "Accept-Ranges": "bytes", "Cache-Control": "private, max-age=3600" };
     const range = request.headers.get("range");
     if (range) {
       const match = /^bytes=(\d*)-(\d*)$/.exec(range);
@@ -19,6 +19,6 @@ export async function GET(request: Request, { params }: { params: Promise<{ file
     }
     return new Response(new Uint8Array(bytes), { headers: { ...headers, "Content-Length": String(bytes.length) } });
   } catch (error) {
-    return new Response("Video unavailable", { status: (error as NodeJS.ErrnoException).code === "ENOENT" ? 404 : 500 });
+    return new Response("Media unavailable", { status: (error as NodeJS.ErrnoException).code === "ENOENT" ? 404 : 500 });
   }
 }

@@ -124,7 +124,7 @@ export function DigitalHumanPlayer({ scripts, userName, defaultScene = "opening"
     <div className="section-head"><h2>督学陪伴</h2><span className={`dh-status ${playing ? "on" : ""}`}>{playing ? "正在播报" : "等待播放"}</span></div>
     <div className="dh-box">
       <div className="dh-avatar">
-        {source.url ? <video ref={video} src={source.url} playsInline preload="metadata"
+        {source.url ? <video ref={video} src={source.url} poster={source.poster} playsInline preload="auto"
           onEnded={() => { setPlaying(false); setStatus("播报结束，继续按计划推进"); }}
           onError={() => { setStatus("视频文件不可用，改用当前文案语音"); setSource({ kind: "tts", label: "浏览器语音合成" }); setPlaying(false); setRequested(n => n + 1); }}
         /> : <div className="dh-static"><Image src="/avatar.png" alt="督学助手静态形象" width={96} height={96} /><span>督学助手 · 语音陪伴</span></div>}

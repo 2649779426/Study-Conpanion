@@ -557,10 +557,9 @@ select {
 }
 
 .dh-avatar {
-  width: min(100%, 280px);
+  width: min(100%, 236.25px);
   margin: 0 auto;
   aspect-ratio: 9 / 16;
-  max-height: 420px;
   border-radius: 16px;
   background: linear-gradient(145deg, #c3ebfa, #cfceff 55%, #fae27c);
   display: grid;
@@ -572,8 +571,8 @@ select {
 .dh-avatar video {
   width: 100%;
   height: 100%;
-  object-fit: contain;
-  background: #0f172a;
+  object-fit: cover;
+  background: #fff;
 }
 
 .dh-pulse {

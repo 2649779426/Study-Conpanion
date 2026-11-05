@@ -2,6 +2,7 @@ import "server-only";
 import { mkdir, readFile, writeFile, rename, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { chanjingFetch } from "./client";
+import { createVideoPoster } from "./poster";
 import { videoHash } from "../playback";
 import type { ScriptScene, VideoJob } from "../types";
 
@@ -34,8 +35,8 @@ async function readJob(id: string): Promise<StoredJob | null> {
   catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") return null; throw error; }
 }
 function publicJob(job: StoredJob): VideoJob {
-  const { jobId, hash, scene, text, status, error, url, detail, createdAt } = job;
-  return { jobId, hash, scene, text, status, error, url, detail, createdAt };
+  const { jobId, hash, scene, text, status, error, url, poster, detail, createdAt } = job;
+  return { jobId, hash, scene, text, status, error, url, poster, detail, createdAt };
 }
 export async function getJob(id: string): Promise<VideoJob | null> {
   const job = await readJob(id);
@@ -111,6 +112,7 @@ export async function advanceJob(id: string): Promise<VideoJob | null> {
           const path = join(VIDEO_ROOT, `${job.hash}.mp4`);
           await writeFile(`${path}.tmp`, bytes);
           await rename(`${path}.tmp`, path);
+          if (await createVideoPoster(path, join(VIDEO_ROOT, `${job.hash}.jpg`))) job.poster = `/generated/${job.hash}.jpg`;
           job.url = `/generated/${job.hash}.mp4`; job.status = "completed";
         }
       }

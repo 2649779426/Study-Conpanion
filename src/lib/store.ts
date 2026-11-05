@@ -36,6 +36,8 @@ export function normalizeStore(store: AppStore, today = todayKey()): AppStore {
   }).map(r => ({ ...r, allDone: r.allDone ?? false, totalTasks: r.totalTasks ?? 0 }));
   return {
     ...seed, ...store, checkIns, taskDate: today,
+    // 自动提醒过窗后即使曾排队、刷新或跨天也不能补播；旧版无窗口的自动队列丢弃。
+    broadcasts: store.broadcasts.filter(b => b.expiresAt ? b.expiresAt > Date.now() : !b.id.startsWith("rule-")),
     plan: store.plan ? {
       ...store.plan, streak: calculateStreak(checkIns, today),
       tasks: store.plan.tasks.map(t => {
@@ -109,18 +111,33 @@ export function adjustPlanByProgress(store: AppStore): AppStore {
   }) } };
 }
 export function shouldTriggerRule(store: AppStore, rule: ReminderRule, now = new Date()): boolean {
-  return rule.enabled && /^([01]\d|2[0-3]):[0-5]\d$/.test(rule.time)
-    && beijingTime(now) >= rule.time && store.triggeredRules[rule.id] !== todayKey(now)
+  const elapsed = ruleElapsed(rule, now);
+  return rule.enabled && elapsed >= 0 && elapsed < 10
+    && store.triggeredRules[rule.id] !== todayKey(now) && store.missedRules?.[rule.id] !== todayKey(now)
     && (rule.scene !== "reminder" || !!store.plan?.tasks.some(t => !t.done));
+}
+function ruleElapsed(rule: ReminderRule, now: Date): number {
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(rule.time)) return NaN;
+  const minutes = (time: string) => Number(time.slice(0, 2)) * 60 + Number(time.slice(3));
+  return minutes(beijingTime(now)) - minutes(rule.time);
 }
 export function triggerRule(store: AppStore, rule: ReminderRule, manual = false): AppStore {
   store = normalizeStore(store);
-  const id = manual ? `manual-${crypto.randomUUID()}` : `rule-${rule.id}-${todayKey()}`;
-  if (!manual && !shouldTriggerRule(store, rule)) return store;
+  const now = new Date();
+  const today = todayKey(now);
+  const id = manual ? `manual-${crypto.randomUUID()}` : `rule-${rule.id}-${today}`;
+  if (!manual) {
+    if (!rule.enabled || store.triggeredRules[rule.id] === today || store.missedRules[rule.id] === today) return store;
+    if (ruleElapsed(rule, now) >= 10) return addMessage({
+      ...store, missedRules: { ...store.missedRules, [rule.id]: today },
+    }, `missed-${rule.id}-${today}`, `${rule.time} ${rule.name} · 已错过`);
+    if (!shouldTriggerRule(store, rule, now)) return store;
+  }
+  const expiresAt = manual ? undefined : new Date(`${today}T${rule.time}:00+08:00`).getTime() + 10 * 60000;
   return addMessage({
     ...store,
-    triggeredRules: manual ? store.triggeredRules : { ...store.triggeredRules, [rule.id]: todayKey() },
-    broadcasts: [...store.broadcasts, { id, scene: rule.scene, title: `${manual ? "手动试触发" : "到点提醒"} · ${rule.name}` }],
+    triggeredRules: manual ? store.triggeredRules : { ...store.triggeredRules, [rule.id]: today },
+    broadcasts: [...store.broadcasts, { id, scene: rule.scene, title: `${manual ? "手动试触发" : "到点提醒"} · ${rule.name}`, expiresAt }],
   }, id, `${manual ? "手动试触发" : "北京时间到点提醒"}：${rule.name}（${rule.time}）`);
 }
 export function noticeKey(rule: ReminderRule): string { return JSON.stringify(rule); }

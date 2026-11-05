@@ -10,6 +10,7 @@ export function createSeedStore(): AppStore {
     userName: "同学",
     taskDate: today,
     triggeredRules: {},
+    missedRules: {},
     messages: [],
     noticeReadKeys: [],
     videoJobs: [],

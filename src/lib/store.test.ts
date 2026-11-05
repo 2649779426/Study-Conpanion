@@ -81,6 +81,7 @@ it("同日更新成部分完成会撤回当天连续计数", () => {
   expect(updated.plan!.streak).toBe(0);
 });
 it("提醒到点触发且当天去重，次日可以再次触发", () => {
+  vi.setSystemTime(new Date("2026-11-05T00:30:00Z"));
   const store = createSeedStore(); const rule = store.rules[0];
   expect(shouldTriggerRule(store, rule, new Date("2026-11-05T00:29:59Z"))).toBe(false);
   expect(shouldTriggerRule(store, rule, new Date("2026-11-05T00:30:00Z"))).toBe(true);
@@ -89,6 +90,53 @@ it("提醒到点触发且当天去重，次日可以再次触发", () => {
   expect(triggered.broadcasts).toHaveLength(1);
   expect(triggerRule(triggered, rule).messages).toHaveLength(1);
   expect(shouldTriggerRule(triggered, rule, new Date("2026-11-06T00:30:00Z"))).toBe(true);
+});
+it.each([
+  ["2026-11-05T00:29:59Z", false],
+  ["2026-11-05T00:30:00Z", true],
+  ["2026-11-05T00:39:59Z", true],
+  ["2026-11-05T00:40:00Z", false],
+  ["2026-11-05T13:15:00Z", false],
+])("自动提醒只在十分钟半开窗口内触发：%s", (instant, expected) => {
+  const store = createSeedStore();
+  expect(shouldTriggerRule(store, store.rules[0], new Date(instant))).toBe(expected);
+});
+it("首次晚间打开仅记录两条已错过，不排队不播放，重复检查及重载不重复记消息", () => {
+  vi.setSystemTime(new Date("2026-11-05T13:15:00Z"));
+  let store = createSeedStore();
+  for (const rule of store.rules) store = triggerRule(store, rule);
+  expect(store.broadcasts).toEqual([]);
+  expect(store.messages.map(m => m.text).sort()).toEqual(["08:30 早间开场 · 已错过", "14:00 午后催学 · 已错过"]);
+  store.messages.forEach(m => { m.read = true; });
+  store = JSON.parse(JSON.stringify(store));
+  for (const rule of store.rules) store = triggerRule(store, rule);
+  expect(store.messages).toHaveLength(2);
+  expect(store.messages.every(m => m.read)).toBe(true);
+});
+it("错过状态跨北京时间零点重置，次日窗口内仍可触发", () => {
+  vi.setSystemTime(new Date("2026-11-05T13:15:00Z"));
+  const seed = createSeedStore();
+  const missed = triggerRule(seed, seed.rules[0]);
+  vi.setSystemTime(new Date("2026-11-06T00:30:00Z"));
+  const next = triggerRule(missed, missed.rules[0]);
+  expect(next.broadcasts).toHaveLength(1);
+  expect(next.messages).toHaveLength(2);
+  expect(next.messages.some(m => m.text.endsWith("已错过"))).toBe(true);
+});
+it("23:55 规则过了零点不补弹，十分钟窗口不绕回当天早晨", () => {
+  const seed = createSeedStore();
+  const rule = { ...seed.rules[0], time: "23:55" };
+  expect(shouldTriggerRule(seed, rule, new Date("2026-11-05T15:59:59Z"))).toBe(true);
+  expect(shouldTriggerRule(seed, rule, new Date("2026-11-05T16:01:00Z"))).toBe(false);
+});
+it("排队中的自动提醒过窗即清除，旧版无窗口的自动队列也不补弹", () => {
+  vi.setSystemTime(new Date("2026-11-05T00:30:00Z"));
+  const seed = createSeedStore();
+  const queued = triggerRule(seed, seed.rules[0]);
+  vi.setSystemTime(new Date("2026-11-05T00:40:00Z"));
+  expect(normalizeStore(queued).broadcasts).toEqual([]);
+  seed.broadcasts = [{ id: "rule-r1-2026-11-05", title: "到点提醒 · 早间开场", scene: "opening" }];
+  expect(normalizeStore(seed).broadcasts).toEqual([]);
 });
 it("停用规则不触发，reminder 仅有未完成任务才触发", () => {
   const store = createSeedStore(); const rule = store.rules[1];

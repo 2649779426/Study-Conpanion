@@ -63,7 +63,7 @@ export type AppMessage = {
   read: boolean;
 };
 
-export type BroadcastEvent = { id: string; scene: ScriptScene; title: string };
+export type BroadcastEvent = { id: string; scene: ScriptScene; title: string; expiresAt?: number };
 
 export type VideoJob = {
   jobId: string;
@@ -73,6 +73,7 @@ export type VideoJob = {
   status: "queued" | "audio" | "video" | "completed" | "failed";
   error?: string;
   url?: string;
+  poster?: string;
   detail?: string;
   createdAt: string;
 };
@@ -86,6 +87,7 @@ export type AppStore = {
   checkIns: CheckInRecord[];
   taskDate: string;
   triggeredRules: Record<string, string>;
+  missedRules: Record<string, string>;
   messages: AppMessage[];
   noticeReadKeys: string[];
   videoJobs: VideoJob[];

@@ -91,7 +91,7 @@ export default function HomePage() {
               </Link>
             </div>
             <p className="lead">
-              嗨 {store.userName}，今天按计划推进学习。完成任务后记得打卡，数字人会在关键节点给你播报提醒。
+              嗨 {store.userName}，督学助手已在线陪伴。进入页面会主动开场，学习中会提醒进度，打卡后会陪你复盘。
             </p>
             <div className="row" style={{ marginTop: 14 }}>
               <Link className="btn" href="/checkin">
@@ -142,6 +142,10 @@ export default function HomePage() {
             scripts={store.scripts}
             userName={store.userName}
             defaultScene="opening"
+            autoPlay
+            remindIfPending
+            pendingCount={Math.max(total - done, 0)}
+            companion
           />
 
           <section className="card">

@@ -182,15 +182,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             {panel === "message" ? (
               <>
                 <div className="announce">
-                  <b>今日开场提醒已准备好</b>
+                  <b>督学助手已主动开场</b>
                   <span className="muted" style={{ fontSize: 12 }}>
-                    可以开始今日学习播报
+                    进入首页会自动陪伴问候
                   </span>
                 </div>
                 <div className="announce purple">
-                  <b>还有任务未完成</b>
+                  <b>我会盯着未完成任务</b>
                   <span className="muted" style={{ fontSize: 12 }}>
-                    完成后请及时打卡
+                    空闲一会儿会主动提醒你
                   </span>
                 </div>
                 <div className="row" style={{ marginTop: 10 }}>

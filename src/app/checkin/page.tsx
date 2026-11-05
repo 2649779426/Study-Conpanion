@@ -4,12 +4,17 @@ import { useState } from "react";
 import { DigitalHumanPlayer } from "@/components/DigitalHumanPlayer";
 import { useToast } from "@/components/DemoToast";
 import { useAppStore } from "@/hooks/useAppStore";
+import type { ScriptScene } from "@/lib/types";
 
 export default function CheckInPage() {
   const { store, ready, toggleTask, checkIn } = useAppStore();
   const { show } = useToast();
   const [note, setNote] = useState("");
   const [message, setMessage] = useState("");
+  const [playSignal, setPlaySignal] = useState<{
+    scene: ScriptScene;
+    token: number;
+  } | null>(null);
 
   if (!ready || !store) {
     return <div className="card">加载中…</div>;
@@ -73,13 +78,14 @@ export default function CheckInPage() {
               const ratio = done / Math.max(total, 1);
               const tip =
                 ratio >= 0.75
-                  ? "完成度高，已自动加练未完成项。"
+                  ? "完成度高，已自动加练未完成项。督学助手来陪你复盘。"
                   : ratio < 0.4 && done > 0
-                    ? "完成度偏低，已自动精简未完成项。"
-                    : "打卡已记录。";
+                    ? "完成度偏低，已自动精简未完成项。督学助手来陪你复盘。"
+                    : "打卡已记录。督学助手来陪你复盘。";
               setMessage(tip);
               show(tip);
               setNote("");
+              setPlaySignal({ scene: "review", token: Date.now() });
             }}
           >
             提交打卡
@@ -122,6 +128,9 @@ export default function CheckInPage() {
         scripts={store.scripts}
         userName={store.userName}
         defaultScene="review"
+        autoPlay={false}
+        playSignal={playSignal}
+        companion
       />
     </div>
   );

@@ -2,7 +2,33 @@
 
 验证日期：2026-11-05（北京时间）。环境：Windows / Node.js 24.21.0 / pnpm 10.22.0。
 
-## 第二轮返工验证（最新）
+## 第三轮：学习回顾与成果可视化（最新）
+
+按 `../_codex/brief_demo_r3.md` 执行，分支 `fix/competition-demo`，初始工作区干净。本轮不开浏览器，不调用语音/视频生成接口，不输出凭据，不 push。
+
+| 命令 | 结果 | 输出摘要 |
+| --- | --- | --- |
+| `pnpm install` | 退出 0 | Lockfile is up to date / Already up to date |
+| `pnpm lint` | 退出 0 | 无错误、无告警 |
+| `pnpm exec tsc --noEmit` | 退出 0 | 无类型错误 |
+| `pnpm test` | 退出 0 | 7 文件，62 项通过（原 47 项 + 本轮 15 项） |
+| `pnpm build` | 退出 0 | Next.js 16.4.5 编译、TypeScript、9/9 静态页面生成成功，新增 `/review` |
+
+- 专注测试：暂停续上与不足一秒余量、分钟向下取整、重复开始不重置、切换单任务、序列化刷新恢复、跨北京时间午夜拆天且不重复结算、提交打卡与换模板前结算、保留任务标题及科目秒数/计划快照。
+- 成果测试：14 天零值补齐及区间边界、打卡完成率、各科按秒计算占比、零数据、本周一至今天对比完整上周的增减/百分比/零基数、未完成科目、纯专注日期回顾、加练/精简快照。
+- 样例测试：载入幂等、断签、跳过已有真实数据日期、保留今天及活动计时、清除只删 sample。所有示例打卡及专注记录均带 `sample: true`。
+- happy-dom 集成共 16 项：原功能回归、新增首页开始/打卡暂停/刷新续计/单任务切换/结束/复盘实际摘要；首页、打卡、成果三页醒目样例标签与清除；成果空态/14 日图点击/SVG 占比/时间线/浏览器朗读与离页停止；后台载入及重置清空计时和样例。
+- 独立只读代码审查通过：需求符合度、实现质量均未发现确证问题，报告在 `../_codex/r3-review-report.md`。
+
+构建成功后实际 `pnpm start --port 3125`，curl 检查以下路径全部 200：`/`、`/plan`、`/checkin`、`/admin`、`/review`、`/api/chanjing/status`、`/lesson.png`。状态接口 `configured=true`，仅读取布尔值。保留原有 standalone 配置，next start 有入口提示，但服务正常响应。未调用 broadcast 生成端点。
+
+验收服务 PID 36460 按命令行 `next start --port 3125` 及父进程确认后停止；此次完整进程链 9484/26668/32820/16460/23848/35268/36460 残留数 0，3125 监听数 0，没有停止其他进程。
+
+数字人候选：脚本 `scripts/chanjing-list-avatars.mjs` 仅调用 `/access_token` 和分页 `/list_common_dp`，每页 20、ID 去重并限 200。接口报告总数 2741，本轮导出前 200 个，保存 name/id/gender/figure 类型、宽高及预览字段；封面位于 `figures[].cover`，下载 200 张并用 ffmpeg 拼出中文姓名联系表。`../_codex/avatars/avatars.json`、`contact.jpg` 和 `REPORT.md` 为真实只读结果，已目视查看联系表。最初只检查顶层字段而误判无封面，已复核嵌套字段及分页并修正。测试联系表 `test-contact.jpg` 单独命名，不作为真实候选结果。
+
+验证边界：未做浏览器视觉/真实语音听感验收；计时、展开/选择及语音调用使用 DOM 模拟验证，浏览器和系统实际声音取决于 Web Speech 支持。计时依据开始时间，页面关闭期间也会继续计算，离开前应暂停；未添加空闲检测。
+
+## 第二轮返工验证（历史）
 
 按 `../_codex/brief_demo_r2.md` 执行，分支 `fix/competition-demo`。未启动浏览器，使用真实 ffmpeg 抽帧、DOM 集成测试和生产 HTTP 验收。
 

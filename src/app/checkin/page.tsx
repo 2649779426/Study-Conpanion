@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { DigitalHumanPlayer } from "@/components/DigitalHumanPlayer";
+import { ScheduledPlayer } from "@/components/ScheduledPlayer";
 import { useToast } from "@/components/DemoToast";
 import { useAppStore } from "@/hooks/useAppStore";
 import type { ScriptScene } from "@/lib/types";
@@ -141,13 +141,10 @@ export default function CheckInPage() {
         )}
       </section>
 
-      <DigitalHumanPlayer
-        scripts={store.scripts}
-        userName={store.userName}
+      <ScheduledPlayer
         defaultScene="review"
         autoPlay={false}
         playSignal={playSignal}
-        companion
       />
     </div>
   );

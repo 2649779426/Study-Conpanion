@@ -7,7 +7,7 @@ import { useMemo, useState } from "react";
 import { useAppStore } from "@/components/StoreProvider";
 import { useToast } from "@/components/DemoToast";
 import { noticeKey } from "@/lib/store";
-import { DigitalHumanPlayer } from "./DigitalHumanPlayer";
+import { ScheduledPlayer } from "./ScheduledPlayer";
 
 const menu = [
   {
@@ -31,7 +31,7 @@ const menu = [
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { store, ready, markRead, dismissBroadcast } = useAppStore();
+  const { store, ready, markRead } = useAppStore();
   const { show } = useToast();
   const [query, setQuery] = useState("");
   const [panel, setPanel] = useState<"message" | "notice" | null>(null);
@@ -41,6 +41,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const notices = store?.rules.filter(r => r.enabled) ?? [];
   const noticeCount = notices.filter(r => !store?.noticeReadKeys.includes(noticeKey(r))).length;
   const broadcast = store?.broadcasts[0];
+  const floatingBroadcast = !!broadcast && pathname !== "/" && pathname !== "/checkin";
 
   const searchHits = useMemo(() => {
     if (!store || !query.trim()) return [];
@@ -96,7 +97,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         ))}
       </aside>
 
-      <div className="content">
+      <div className={`content ${floatingBroadcast ? "has-broadcast" : ""}`}>
         <header className="topbar">
           <div className="search-wrap">
             <div className="search-box">
@@ -244,11 +245,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         ) : null}
 
         <div className="page">{children}</div>
-        {broadcast && store ? <aside className="broadcast-overlay" role="dialog" aria-label={broadcast.title}>
-          <div className="section-head"><b>{broadcast.title}</b>
-            <button type="button" className="btn ghost" onClick={dismissBroadcast}>关闭{store.broadcasts.length > 1 ? ` / 下一条（${store.broadcasts.length - 1}）` : ""}</button>
-          </div>
-          <DigitalHumanPlayer key={broadcast.id} scripts={store.scripts} userName={store.userName} defaultScene={broadcast.scene} autoPlay />
+        {floatingBroadcast && broadcast ? <aside className="broadcast-overlay" role="dialog" aria-label={broadcast.title}>
+          <ScheduledPlayer compact />
+          <button type="button" className="btn ghost broadcast-home" onClick={() => router.push("/")}>去首页</button>
         </aside> : null}
       </div>
     </div>

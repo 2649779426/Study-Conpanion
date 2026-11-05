@@ -313,6 +313,7 @@ select {
 
 .grid-main {
   display: grid;
+  align-items: start;
   grid-template-columns: 2fr 1fr;
   gap: 16px;
 }
@@ -422,6 +423,7 @@ select {
 .task-list,
 .stack {
   display: grid;
+  align-content: start;
   gap: 10px;
 }
 
@@ -788,9 +790,23 @@ select {
 :disabled { cursor: not-allowed; opacity: .55; }
 .generation-box { margin-top: 16px; padding: 14px; border: 1px solid var(--line, #e8e8ef); border-radius: 12px; }
 .generation-box p { font-size: 12px; line-height: 1.8; }
-.broadcast-overlay { position: fixed; right: 24px; bottom: 20px; width: min(390px, calc(100vw - 32px)); max-height: 88vh; overflow-y: auto; z-index: 80; padding: 14px; border: 1px solid #dedbed; border-radius: 18px; background: white; box-shadow: 0 12px 50px #25204433; }
-.broadcast-overlay .dh-avatar { height: 180px; }
-.broadcast-overlay .dh-card { padding: 12px; }
+.broadcast-overlay { position: fixed; right: 20px; bottom: 20px; width: min(360px, calc(100vw - 40px)); max-height: calc(100dvh - 40px); overflow-y: auto; z-index: 40; padding: 12px; border: 1px solid #dedbed; border-radius: 18px; background: white; box-shadow: 0 12px 50px #25204433; }
+/* 为紧凑卡片预留右侧空间，表单及保存按钮始终不会被覆盖。 */
+.has-broadcast > .page { margin-right: 376px; }
+.has-broadcast .grid-main { grid-template-columns: 1fr; }
+.broadcast-banner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; margin-bottom: 12px; border-radius: 10px; background: var(--lama-sky-light); font-size: 12px; }
+.broadcast-banner .btn { padding: 5px 9px; font-size: 11px; }
+.dh-compact.card { padding: 0; }
+.dh-compact .dh-box { gap: 8px; }
+.dh-compact .dh-avatar { width: 100%; height: 200px; max-height: 220px; aspect-ratio: auto; }
+.dh-compact .dh-avatar video { object-position: center; }
+.dh-compact .dh-presence { font-size: 12px; }
+.dh-compact .script-box { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; min-height: 0; max-height: 88px; padding: 8px; }
+.broadcast-home { margin-top: 8px; }
+@media (max-width: 1100px) {
+  .has-broadcast > .page { margin-right: 0; order: 2; }
+  .broadcast-overlay { position: static; align-self: flex-end; margin: 16px 20px 0; order: 1; }
+}
 .dh-static { height: 100%; min-height: 180px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; background: var(--lama-purple-light, #f5f1ff); }
 .dh-static img { border-radius: 50%; object-fit: cover; }
 .dh-static span { font-size: 12px; color: #666; }

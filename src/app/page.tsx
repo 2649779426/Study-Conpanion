@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { DigitalHumanPlayer } from "@/components/DigitalHumanPlayer";
+import { ScheduledPlayer } from "@/components/ScheduledPlayer";
 import { useToast } from "@/components/DemoToast";
 import { useAppStore } from "@/hooks/useAppStore";
 
@@ -138,12 +138,9 @@ export default function HomePage() {
         </div>
 
         <div className="stack">
-          <DigitalHumanPlayer
-            scripts={store.scripts}
-            userName={store.userName}
+          <ScheduledPlayer
             defaultScene="opening"
-            autoPlay={store.broadcasts.length === 0}
-            companion
+            autoPlay
           />
 
           <section className="card">

@@ -1,7 +1,7 @@
 "use client";
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { ScriptItem, ScriptScene } from "@/lib/types";
+import type { BroadcastEvent, ScriptItem, ScriptScene } from "@/lib/types";
 import { speakText, stopSpeaking } from "@/lib/tts";
 import { finalText, selectPlayback, type PlaybackSource } from "@/lib/playback";
 import { useAppStore } from "./StoreProvider";
@@ -11,8 +11,10 @@ let activePlayer: symbol | null = null;
 type Props = {
   scripts: ScriptItem[]; userName: string; defaultScene?: ScriptScene; autoPlay?: boolean;
   playSignal?: { scene: ScriptScene; token: number } | null; companion?: boolean;
+  compact?: boolean;
+  reminder?: { event: BroadcastEvent; remaining: number; dismiss: () => void };
 };
-export function DigitalHumanPlayer({ scripts, userName, defaultScene = "opening", autoPlay = false, playSignal, companion = true }: Props) {
+export function DigitalHumanPlayer({ scripts, userName, defaultScene = "opening", autoPlay = false, playSignal, companion = true, compact = false, reminder }: Props) {
   const { store, rememberJob } = useAppStore();
   const [scene, setScene] = useState(defaultScene);
   const [playing, setPlaying] = useState(false);
@@ -24,9 +26,12 @@ export function DigitalHumanPlayer({ scripts, userName, defaultScene = "opening"
   const video = useRef<HTMLVideoElement>(null);
   const identity = useRef("");
   const lastPlayed = useRef(0);
+  const initialAutoPlayed = useRef(false);
   const owner = useRef(Symbol("digital-human"));
   const jobs = store?.videoJobs;
   const text = finalText(scripts.find(s => s.scene === scene)?.content ?? "", userName);
+  const reminderId = reminder?.event.id;
+  const reminderScene = reminder?.event.scene;
   const stop = useCallback(() => {
     if (activePlayer === owner.current) { stopSpeaking(); activePlayer = null; }
     video.current?.pause(); setPlaying(false);
@@ -36,7 +41,7 @@ export function DigitalHumanPlayer({ scripts, userName, defaultScene = "opening"
     let cancelled = false;
     void selectPlayback(scene, text, jobs ?? []).then(result => {
       if (cancelled) return;
-      const nextIdentity = JSON.stringify([scene, text, result.url]);
+      const nextIdentity = JSON.stringify([scene, text, result.url, result.poster]);
       if (identity.current !== nextIdentity) {
         video.current?.pause();
         if (activePlayer === owner.current) { stopSpeaking(); activePlayer = null; }
@@ -110,17 +115,30 @@ export function DigitalHumanPlayer({ scripts, userName, defaultScene = "opening"
   }, [requested, ready, resolvedFor, scene, source, text, speak]);
 
   useEffect(() => {
-    if (!autoPlay) return;
-    const timer = window.setTimeout(() => setRequested(n => n + 1), 600);
+    if (reminderId) { initialAutoPlayed.current = true; return; }
+    if (!autoPlay || initialAutoPlayed.current) return;
+    const timer = window.setTimeout(() => { initialAutoPlayed.current = true; setRequested(n => n + 1); }, 600);
     return () => clearTimeout(timer);
-  }, [autoPlay]);
+  }, [autoPlay, reminderId]);
   useEffect(() => {
     if (!playSignal) return;
     const timer = window.setTimeout(() => { setScene(playSignal.scene); setRequested(n => n + 1); }, 0);
     return () => clearTimeout(timer);
   }, [playSignal]);
+  useEffect(() => {
+    if (!reminderId || !reminderScene) return;
+    const timer = window.setTimeout(() => { setScene(reminderScene); setRequested(n => n + 1); }, 0);
+    return () => clearTimeout(timer);
+  }, [reminderId, reminderScene]);
 
-  return <section className={`card dh-card ${playing ? "dh-live" : ""}`}>
+  return <section className={`card dh-card ${compact ? "dh-compact" : ""} ${playing ? "dh-live" : ""}`}>
+    {reminder ? <div className="broadcast-banner" role="status">
+      <b>{reminder.event.title}</b>
+      <div className="row">
+        <button type="button" className="btn ghost" onClick={() => { stop(); setStatus("播放已暂停"); reminder.dismiss(); }}>关闭</button>
+        {reminder.remaining > 0 ? <button type="button" className="btn ghost" onClick={() => { stop(); reminder.dismiss(); }}>下一条({reminder.remaining})</button> : null}
+      </div>
+    </div> : null}
     <div className="section-head"><h2>督学陪伴</h2><span className={`dh-status ${playing ? "on" : ""}`}>{playing ? "正在播报" : "等待播放"}</span></div>
     <div className="dh-box">
       <div className="dh-avatar">

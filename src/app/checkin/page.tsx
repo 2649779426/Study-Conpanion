@@ -5,6 +5,7 @@ import { DigitalHumanPlayer } from "@/components/DigitalHumanPlayer";
 import { useToast } from "@/components/DemoToast";
 import { useAppStore } from "@/hooks/useAppStore";
 import type { ScriptScene } from "@/lib/types";
+import { shiftDay, todayKey } from "@/lib/date";
 
 export default function CheckInPage() {
   const { store, ready, toggleTask, checkIn } = useAppStore();
@@ -73,6 +74,7 @@ export default function CheckInPage() {
           <button
             type="button"
             className="btn"
+            disabled={total === 0}
             onClick={() => {
               checkIn(note.trim() || `完成 ${done}/${total}`);
               const ratio = done / Math.max(total, 1);
@@ -96,6 +98,21 @@ export default function CheckInPage() {
             {message}
           </p>
         ) : null}
+
+        <div className="section-head" style={{ marginTop: 24 }}><h2>近 7 天完成情况</h2></div>
+        <p className="muted">仅统计实际提交记录；同日重复提交会更新当天。全部完成才计入连续打卡。</p>
+        <div className="history-chart" aria-label="近七天真实打卡完成率">
+          {Array.from({ length: 7 }, (_, index) => {
+            const day = shiftDay(todayKey(), index - 6);
+            const record = store.checkIns.find(r => r.date === day);
+            const rate = record?.totalTasks ? Math.round(record.taskIds.length / record.totalTasks * 100) : 0;
+            return <div className="history-day" key={day} title={`${day}：${record ? record.totalTasks ? `${rate}%` : "旧版记录无任务总数" : "未打卡"}`}>
+              <span>{record ? record.totalTasks ? `${rate}%` : "旧记录" : "未打卡"}</span>
+              <div className="history-track"><div style={{ height: `${rate}%` }} /></div>
+              <span>{day.slice(5)}</span>
+            </div>;
+          })}
+        </div>
 
         <div className="section-head" style={{ marginTop: 24 }}>
           <h2>最近打卡</h2>

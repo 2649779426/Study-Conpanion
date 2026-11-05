@@ -6,6 +6,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { useAppStore } from "@/components/StoreProvider";
 import { useToast } from "@/components/DemoToast";
+import { noticeKey } from "@/lib/store";
+import { DigitalHumanPlayer } from "./DigitalHumanPlayer";
 
 const menu = [
   {
@@ -29,12 +31,16 @@ const menu = [
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { store, ready } = useAppStore();
+  const { store, ready, markRead, dismissBroadcast } = useAppStore();
   const { show } = useToast();
   const [query, setQuery] = useState("");
   const [panel, setPanel] = useState<"message" | "notice" | null>(null);
 
   const userName = ready && store ? store.userName : "同学";
+  const messageCount = store?.messages.filter(m => !m.read).length ?? 0;
+  const notices = store?.rules.filter(r => r.enabled) ?? [];
+  const noticeCount = notices.filter(r => !store?.noticeReadKeys.includes(noticeKey(r))).length;
+  const broadcast = store?.broadcasts[0];
 
   const searchHits = useMemo(() => {
     if (!store || !query.trim()) return [];
@@ -137,18 +143,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               type="button"
               className="icon-btn"
               aria-label="消息"
-              onClick={() => setPanel(panel === "message" ? null : "message")}
+              onClick={() => { setPanel(panel === "message" ? null : "message"); markRead("message"); }}
             >
               <Image src="/message.png" alt="" width={16} height={16} />
+              {messageCount > 0 ? <span className="badge-dot">{messageCount}</span> : null}
             </button>
             <button
               type="button"
               className="icon-btn"
               aria-label="公告"
-              onClick={() => setPanel(panel === "notice" ? null : "notice")}
+              onClick={() => { setPanel(panel === "notice" ? null : "notice"); markRead("notice"); }}
             >
               <Image src="/announcement.png" alt="" width={16} height={16} />
-              <span className="badge-dot">3</span>
+              {noticeCount > 0 ? <span className="badge-dot">{noticeCount}</span> : null}
             </button>
             <button
               type="button"
@@ -181,18 +188,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
             {panel === "message" ? (
               <>
-                <div className="announce">
-                  <b>督学助手已主动开场</b>
-                  <span className="muted" style={{ fontSize: 12 }}>
-                    进入首页会自动陪伴问候
-                  </span>
-                </div>
-                <div className="announce purple">
-                  <b>我会盯着未完成任务</b>
-                  <span className="muted" style={{ fontSize: 12 }}>
-                    空闲一会儿会主动提醒你
-                  </span>
-                </div>
+                {store?.messages.length ? store.messages.map(message => <div className="announce" key={message.id}>
+                  <b>{message.text}</b>
+                  <span className="muted">{new Date(message.createdAt).toLocaleString("zh-CN", { timeZone: "Asia/Shanghai" })} · 北京时间</span>
+                </div>) : <p className="muted">暂无消息；提醒触发、提交打卡或视频生成完成后会记录在这里。</p>}
                 <div className="row" style={{ marginTop: 10 }}>
                   <button
                     type="button"
@@ -218,7 +217,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </>
             ) : (
               <>
-                {(store?.rules ?? []).map((rule, idx) => (
+                {notices.length === 0 ? <p className="muted">暂无启用的提醒规则</p> : null}
+                {notices.map((rule, idx) => (
                   <button
                     key={rule.id}
                     type="button"
@@ -244,6 +244,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         ) : null}
 
         <div className="page">{children}</div>
+        {broadcast && store ? <aside className="broadcast-overlay" role="dialog" aria-label={broadcast.title}>
+          <div className="section-head"><b>{broadcast.title}</b>
+            <button type="button" className="btn ghost" onClick={dismissBroadcast}>关闭{store.broadcasts.length > 1 ? ` / 下一条（${store.broadcasts.length - 1}）` : ""}</button>
+          </div>
+          <DigitalHumanPlayer key={broadcast.id} scripts={store.scripts} userName={store.userName} defaultScene={broadcast.scene} autoPlay />
+        </aside> : null}
       </div>
     </div>
   );

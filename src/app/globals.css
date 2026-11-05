@@ -786,3 +786,16 @@ select {
     display: none;
   }
 }
+:disabled { cursor: not-allowed; opacity: .55; }
+.generation-box { margin-top: 16px; padding: 14px; border: 1px solid var(--line, #e8e8ef); border-radius: 12px; }
+.generation-box p { font-size: 12px; line-height: 1.8; }
+.broadcast-overlay { position: fixed; right: 24px; bottom: 20px; width: min(390px, calc(100vw - 32px)); max-height: 88vh; overflow-y: auto; z-index: 80; padding: 14px; border: 1px solid #dedbed; border-radius: 18px; background: white; box-shadow: 0 12px 50px #25204433; }
+.broadcast-overlay .dh-avatar { height: 180px; }
+.broadcast-overlay .dh-card { padding: 12px; }
+.dh-static { height: 100%; min-height: 180px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; background: var(--lama-purple-light, #f5f1ff); }
+.dh-static img { border-radius: 50%; object-fit: cover; }
+.dh-static span { font-size: 12px; color: #666; }
+.history-chart { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin: 18px 0; }
+.history-day { text-align: center; font-size: 11px; color: #666; }
+.history-track { height: 90px; display: flex; align-items: flex-end; border-radius: 6px; overflow: hidden; margin: 8px 0; background: var(--lama-purple-light, #f3f0ff); }
+.history-track > div { width: 100%; background: var(--lama-purple, #c5b3ff); }

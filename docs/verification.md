@@ -2,7 +2,41 @@
 
 验证日期：2026-11-05（北京时间）。环境：Windows / Node.js 24.21.0 / pnpm 10.22.0。
 
-## 最终检查
+## 第二轮返工验证（最新）
+
+按 `../_codex/brief_demo_r2.md` 执行，分支 `fix/competition-demo`。未启动浏览器，使用真实 ffmpeg 抽帧、DOM 集成测试和生产 HTTP 验收。
+
+| 命令 | 结果 | 输出摘要 |
+| --- | --- | --- |
+| `pnpm install --frozen-lockfile` | 退出 0 | Lockfile is up to date / Already up to date |
+| `pnpm lint` | 退出 0 | 无错误、无告警 |
+| `pnpm exec tsc --noEmit` | 退出 0 | 无类型错误 |
+| `pnpm test` | 退出 0 | 5 文件，47 项通过 |
+| `pnpm build` | 成功 | Next.js 16.4.5 编译、TypeScript、8/8 静态页面生成成功，随后 `&& pnpm start --port 3125` 启动 |
+
+第二轮回归先观察失败再修复：十分钟窗口外仍触发、晚间首次打开排队补弹、缺失生成封面、JPG 路由 404、首页/打卡页重复播放器、后台缺少去首页操作。另捕获并修复首页开场计时与提醒竞争造成的关闭后重播。
+
+- 调度覆盖：窗口前、起点、截止前一秒、截止点、晚间打开；错过记录去重与序列化重载保留已读；跨北京时间日界后重新触发；23:55 规则不绕回次日早晨；过窗队列及旧版无窗口自动队列不补播。
+- 播放覆盖：预置及生成来源的 poster 匹配、生成后封面持久化及读取、ffmpeg 不可用时视频仍完成且不提供虚假封面、JPG 路由 MIME/404/扩展名校验、原视频 Range 行为不变。
+- DOM 集成 10 项：原后台操作回归；首页/打卡页只保留一个视频、横幅及正确场景选片；compact 排队/下一条/去首页/关闭；21:15 首次仅两条已错过消息、真实未读数和打开清零；开场计时竞争不重播。
+- 真实 ffmpeg 从 `public/videos/*.mp4` 的 0.5 秒处抽取 4 张 JPG，ffprobe 均为 720×1280；已查看 opening.jpg，确认白底真人画面。标准框使用 9:16 和 cover，紧凑框高 200px 并居中裁切，文案最多 3 行。桌面预留卡片右侧区域，窄屏卡片进入文档流；首页网格按内容高度起始对齐。
+
+3125 验收前无监听，实际执行 `pnpm build && pnpm start --port 3125` 后用 curl 检查：
+
+| 请求 | HTTP |
+| --- | --- |
+| `/`、`/plan`、`/checkin`、`/admin` | 全部 200 |
+| `/api/chanjing/status` | 200，`configured=true` |
+| `/videos/{opening,reminder,review,acceptance}.jpg` | 全部 200，`image/jpeg` |
+| `/videos/opening.mp4`，`Range: bytes=0-31` | 206 |
+| `/generated/<不存在的64位hash>.jpg` | 404 |
+| `/api/chanjing/broadcast?id=missing` | 404 |
+
+本轮本地配置状态已与第一轮不同，仅读取布尔状态，没有读取/输出凭据，没有发起真实生成任务；生成链路和无凭据 503 使用单测验证。没有进行浏览器视觉、出声或上游真实生成验收。原有 `output: standalone` 在 `next start` 时仍给出入口提示，实际服务可运行并完成全部 HTTP 检查。
+
+验收服务 PID 39076 经命令行和父进程身份核验后停止。会话已退出；复查此次进程链（27636/30044/16904/25668/39076）残留数 0，3125 监听数 0。服务主动停止导致的退出码不影响此前成功构建和 HTTP 结果；未停止其他任务进程。
+
+## 第一轮历史：最终检查
 
 | 命令 | 结果 | 输出摘要 |
 | --- | --- | --- |

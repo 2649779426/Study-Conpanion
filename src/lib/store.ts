@@ -7,7 +7,10 @@ export function loadStore(): AppStore {
   if (typeof window === "undefined") return createSeedStore();
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    return normalizeStore({ ...createSeedStore(), ...(raw ? JSON.parse(raw) : {}) });
+    const parsed = raw ? JSON.parse(raw) : createSeedStore();
+    return normalizeStore({ ...createSeedStore(), ...parsed,
+      taskDate: parsed.taskDate ?? parsed.checkIns?.[0]?.date ?? parsed.plan?.startDate ?? todayKey(),
+    });
   } catch { return createSeedStore(); }
 }
 export function saveStore(store: AppStore) {

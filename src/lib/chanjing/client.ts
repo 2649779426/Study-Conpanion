@@ -30,6 +30,7 @@ async function parseEnvelope<T>(
   res: Response,
   path: string,
 ): Promise<ApiEnvelope<T>> {
+  if (!res.ok) throw new Error(`蝉镜 ${path} HTTP ${res.status}`);
   const body = (await res.json()) as ApiEnvelope<T>;
   if (body.code !== 0) {
     const err = new Error(
@@ -55,6 +56,7 @@ export async function getAccessToken(force = false): Promise<string> {
       secret_key: requireEnv("CHANJING_SECRET_KEY"),
     }),
     cache: "no-store",
+    signal: AbortSignal.timeout(30000),
   });
 
   const envelope = await parseEnvelope<{
@@ -84,6 +86,7 @@ export async function chanjingFetch<T>(
     ...init,
     headers,
     cache: "no-store",
+    signal: init.signal ?? AbortSignal.timeout(30000),
   });
 
   try {
@@ -101,6 +104,7 @@ export async function chanjingFetch<T>(
         ...init,
         headers: retryHeaders,
         cache: "no-store",
+        signal: init.signal ?? AbortSignal.timeout(30000),
       });
       return parseEnvelope<T>(retryRes, path);
     }

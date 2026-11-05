@@ -50,3 +50,8 @@ dist/
 build/
 __pycache__/
 .venv/
+
+# 数字人任务状态与下载视频（本地持久化）
+/.data/
+/public/generated/
+!.env.example

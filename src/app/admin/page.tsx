@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useToast } from "@/components/DemoToast";
 import type { ReminderRule, ScriptItem, ScriptScene } from "@/lib/types";
 import { useAppStore } from "@/hooks/useAppStore";
+import { todayKey } from "@/lib/date";
+import { VideoGeneration } from "@/components/VideoGeneration";
 
 const scenes: { value: ScriptScene; label: string }[] = [
   { value: "opening", label: "开场" },
@@ -12,16 +14,20 @@ const scenes: { value: ScriptScene; label: string }[] = [
 ];
 
 export default function AdminPage() {
-  const { store, ready, saveScript, saveRule } = useAppStore();
+  const { store, ready, saveScript, saveRule, tryRule, resetDemo } = useAppStore();
   const { show } = useToast();
   const [scriptForm, setScriptForm] = useState<ScriptItem | null>(null);
   const [ruleForm, setRuleForm] = useState<ReminderRule | null>(null);
   const [tip, setTip] = useState("");
+  const [confirmReset, setConfirmReset] = useState(false);
 
   useEffect(() => {
     if (!store) return;
-    setScriptForm(store.scripts[0] ?? null);
-    setRuleForm(store.rules[0] ?? null);
+    const timer = window.setTimeout(() => {
+      setScriptForm(current => current ?? store.scripts[0] ?? null);
+      setRuleForm(current => current ?? store.rules[0] ?? null);
+    }, 0);
+    return () => clearTimeout(timer);
   }, [store]);
 
   if (!ready || !store || !scriptForm || !ruleForm) {
@@ -57,12 +63,7 @@ export default function AdminPage() {
           <label>场景</label>
           <select
             value={scriptForm.scene}
-            onChange={(e) =>
-              setScriptForm({
-                ...scriptForm,
-                scene: e.target.value as ScriptScene,
-              })
-            }
+            disabled
           >
             {scenes.map((s) => (
               <option key={s.value} value={s.value}>
@@ -70,6 +71,7 @@ export default function AdminPage() {
               </option>
             ))}
           </select>
+          <span className="muted">场景固定，保证每个场景只有一条话术。</span>
         </div>
         <div className="field">
           <label>标题</label>
@@ -95,7 +97,7 @@ export default function AdminPage() {
           onClick={() => {
             saveScript({
               ...scriptForm,
-              updatedAt: new Date().toISOString().slice(0, 10),
+              updatedAt: todayKey(),
             });
             setTip("话术已保存");
             show("话术已保存");
@@ -103,6 +105,8 @@ export default function AdminPage() {
         >
           保存话术
         </button>
+        <div className="section-head" style={{ marginTop: 24 }}><h2>数字人视频生成</h2></div>
+        {store.scripts.map(script => <VideoGeneration key={script.id} script={script} />)}
       </section>
 
       <section className="card yellowLight">
@@ -210,11 +214,26 @@ export default function AdminPage() {
               <tr key={r.id}>
                 <td>{r.name}</td>
                 <td>{r.time}</td>
-                <td>{r.enabled ? "启用" : "停用"}</td>
+                <td>{r.enabled ? "启用" : "停用"}<br />
+                  <button type="button" className="btn ghost" onClick={() => tryRule(r)}>立即试触发（手动）</button>
+                  <span className="muted">{store.triggeredRules[r.id] === todayKey() ? "今日已自动触发" : "今日尚未自动触发"}</span>
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
+
+        <div className="generation-box">
+          <h2>演示数据</h2>
+          <p className="muted">重置本浏览器的称呼、任务、打卡、消息与配置；服务端已生成视频保留。</p>
+          {confirmReset ? <div role="alert" className="row">
+            <span>确定恢复初始演示数据？当前本地记录将清空。</span>
+            <button type="button" className="btn" onClick={() => {
+              resetDemo(); setScriptForm(null); setRuleForm(null); setConfirmReset(false); setTip("演示数据已重置"); show("演示数据已重置");
+            }}>确认重置</button>
+            <button type="button" className="btn ghost" onClick={() => setConfirmReset(false)}>取消</button>
+          </div> : <button type="button" className="btn ghost" onClick={() => setConfirmReset(true)}>重置演示数据</button>}
+        </div>
 
         <div className="section-head" style={{ marginTop: 20 }}>
           <h2>计划模板</h2>

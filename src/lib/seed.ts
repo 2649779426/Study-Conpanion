@@ -1,23 +1,32 @@
 import type { AppStore } from "./types";
+import { todayKey } from "./date";
 
 export const STORAGE_KEY = "kaoyan-duxue-store-v1";
 
 export function createSeedStore(): AppStore {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayKey();
 
   return {
     userName: "同学",
+    taskDate: today,
+    triggeredRules: {},
+    messages: [],
+    noticeReadKeys: [],
+    videoJobs: [],
+    broadcasts: [],
     plan: {
       id: "plan-demo",
       templateId: "tpl-kaoyan-30",
       name: "考研冲刺 30 天伴学计划",
       examTarget: "2026 考研 · 目标院校冲刺",
       startDate: today,
-      streak: 3,
+      streak: 0,
       tasks: [
         {
           id: "t1",
           title: "英语真题阅读 × 2 篇",
+          baseTitle: "英语真题阅读 × 2 篇",
+          baseMinutes: 60,
           subject: "英语",
           minutes: 60,
           done: false,
@@ -25,6 +34,8 @@ export function createSeedStore(): AppStore {
         {
           id: "t2",
           title: "政治马原错题回顾",
+          baseTitle: "政治马原错题回顾",
+          baseMinutes: 40,
           subject: "政治",
           minutes: 40,
           done: false,
@@ -32,6 +43,8 @@ export function createSeedStore(): AppStore {
         {
           id: "t3",
           title: "专业课核心框架默写",
+          baseTitle: "专业课核心框架默写",
+          baseMinutes: 50,
           subject: "专业课",
           minutes: 50,
           done: false,
@@ -39,6 +52,8 @@ export function createSeedStore(): AppStore {
         {
           id: "t4",
           title: "晚间复盘与明日预告",
+          baseTitle: "晚间复盘与明日预告",
+          baseMinutes: 15,
           subject: "复盘",
           minutes: 15,
           done: false,

@@ -32,6 +32,8 @@ export type StudyTask = {
   subject: string;
   minutes: number;
   done: boolean;
+  baseTitle: string;
+  baseMinutes: number;
 };
 
 export type StudyPlan = {
@@ -50,6 +52,29 @@ export type CheckInRecord = {
   taskIds: string[];
   note: string;
   createdAt: string;
+  totalTasks: number;
+  allDone: boolean;
+};
+
+export type AppMessage = {
+  id: string;
+  text: string;
+  createdAt: string;
+  read: boolean;
+};
+
+export type BroadcastEvent = { id: string; scene: ScriptScene; title: string };
+
+export type VideoJob = {
+  jobId: string;
+  hash: string;
+  scene: ScriptScene;
+  text: string;
+  status: "queued" | "audio" | "video" | "completed" | "failed";
+  error?: string;
+  url?: string;
+  detail?: string;
+  createdAt: string;
 };
 
 export type AppStore = {
@@ -59,5 +84,11 @@ export type AppStore = {
   templates: PlanTemplate[];
   rules: ReminderRule[];
   checkIns: CheckInRecord[];
+  taskDate: string;
+  triggeredRules: Record<string, string>;
+  messages: AppMessage[];
+  noticeReadKeys: string[];
+  videoJobs: VideoJob[];
+  broadcasts: BroadcastEvent[];
   lastBroadcastAt?: string;
 };

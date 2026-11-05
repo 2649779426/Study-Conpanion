@@ -1,168 +1,127 @@
 "use client";
-
 import { createSeedStore, STORAGE_KEY } from "./seed";
-import type {
-  AppStore,
-  CheckInRecord,
-  PlanTemplate,
-  ReminderRule,
-  ScriptItem,
-  StudyPlan,
-} from "./types";
-
-function canUseStorage() {
-  return typeof window !== "undefined" && !!window.localStorage;
-}
+import { todayKey, shiftDay, beijingTime } from "./date";
+import type { AppStore, CheckInRecord, PlanTemplate, ReminderRule, ScriptItem, VideoJob } from "./types";
 
 export function loadStore(): AppStore {
-  if (!canUseStorage()) return createSeedStore();
+  if (typeof window === "undefined") return createSeedStore();
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      const seed = createSeedStore();
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(seed));
-      return seed;
-    }
-    return { ...createSeedStore(), ...JSON.parse(raw) } as AppStore;
-  } catch {
-    return createSeedStore();
-  }
+    return normalizeStore({ ...createSeedStore(), ...(raw ? JSON.parse(raw) : {}) });
+  } catch { return createSeedStore(); }
 }
-
 export function saveStore(store: AppStore) {
-  if (!canUseStorage()) return;
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+  if (typeof window !== "undefined") window.localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
 }
-
-export function applyTemplate(
-  store: AppStore,
-  template: PlanTemplate,
-  userName?: string,
-): AppStore {
-  const today = new Date().toISOString().slice(0, 10);
-  const plan: StudyPlan = {
-    id: `plan-${Date.now()}`,
-    templateId: template.id,
-    name: template.name,
-    examTarget: template.examTarget,
-    startDate: today,
-    streak: store.plan?.streak ?? 0,
-    tasks: template.tasks.map((title, index) => ({
-      id: `task-${Date.now()}-${index}`,
-      title,
-      subject: template.subjects[index % template.subjects.length] ?? "综合",
-      minutes: Math.max(20, Math.round(template.dailyMinutes / template.tasks.length)),
-      done: false,
-    })),
-  };
-
+/** 截至今天（今天未全部完成则从昨天起），连续的“当天全部完成”记录才计一天。
+ * 缺失或部分完成的一天中断连续；旧版无完成快照的记录不推测为全完成。 */
+export function calculateStreak(records: CheckInRecord[], today = todayKey()): number {
+  const complete = new Set(records.filter(r => r.allDone && r.totalTasks > 0).map(r => r.date));
+  let cursor = complete.has(today) ? today : shiftDay(today, -1);
+  let streak = 0;
+  while (complete.has(cursor)) { streak++; cursor = shiftDay(cursor, -1); }
+  return streak;
+}
+export function normalizeStore(store: AppStore, today = todayKey()): AppStore {
+  const seed = createSeedStore();
+  const changedDay = store.taskDate !== today;
+  const seen = new Set<string>();
+  const checkIns = store.checkIns.filter(r => {
+    if (seen.has(r.date)) return false;
+    seen.add(r.date); return true;
+  }).map(r => ({ ...r, allDone: r.allDone ?? false, totalTasks: r.totalTasks ?? 0 }));
   return {
-    ...store,
-    userName: userName?.trim() || store.userName,
-    plan,
+    ...seed, ...store, checkIns, taskDate: today,
+    plan: store.plan ? {
+      ...store.plan, streak: calculateStreak(checkIns, today),
+      tasks: store.plan.tasks.map(t => {
+        const baseTitle = t.baseTitle ?? t.title.replace(/（加练）|（精简）/g, "");
+        const original = seed.plan?.tasks.find(s => s.id === t.id);
+        const baseMinutes = t.baseMinutes ?? original?.baseMinutes ?? t.minutes;
+        return { ...t, baseTitle, baseMinutes, done: changedDay ? false : t.done };
+      }),
+    } : null,
   };
 }
-
+export function applyTemplate(store: AppStore, template: PlanTemplate, userName?: string): AppStore {
+  store = normalizeStore(store);
+  return {
+    ...store, userName: userName?.trim() || store.userName,
+    plan: {
+      id: `plan-${Date.now()}`, templateId: template.id, name: template.name,
+      examTarget: template.examTarget, startDate: todayKey(), streak: calculateStreak(store.checkIns),
+      tasks: template.tasks.map((title, index) => {
+        const minutes = Math.max(20, Math.round(template.dailyMinutes / template.tasks.length));
+        return { id: `task-${Date.now()}-${index}`, title, baseTitle: title, minutes,
+          baseMinutes: minutes, subject: template.subjects[index % template.subjects.length] ?? "综合", done: false };
+      }),
+    },
+  };
+}
 export function toggleTask(store: AppStore, taskId: string): AppStore {
+  store = normalizeStore(store);
   if (!store.plan) return store;
-  return {
-    ...store,
-    plan: {
-      ...store.plan,
-      tasks: store.plan.tasks.map((task) =>
-        task.id === taskId ? { ...task, done: !task.done } : task,
-      ),
-    },
-  };
+  return { ...store, plan: { ...store.plan, tasks: store.plan.tasks.map(t => t.id === taskId ? { ...t, done: !t.done } : t) } };
 }
-
+export function addMessage(store: AppStore, id: string, text: string): AppStore {
+  return { ...store, messages: [
+    { id, text, read: false, createdAt: new Date().toISOString() },
+    ...store.messages.filter(m => m.id !== id),
+  ] };
+}
 export function submitCheckIn(store: AppStore, note: string): AppStore {
-  if (!store.plan) return store;
-  const doneIds = store.plan.tasks.filter((t) => t.done).map((t) => t.id);
-  const today = new Date().toISOString().slice(0, 10);
+  store = normalizeStore(store);
+  if (!store.plan || !store.plan.tasks.length) return store;
+  const today = todayKey();
+  const taskIds = store.plan.tasks.filter(t => t.done).map(t => t.id);
   const record: CheckInRecord = {
-    id: `check-${Date.now()}`,
-    date: today,
-    taskIds: doneIds,
-    note,
-    createdAt: new Date().toISOString(),
+    id: `check-${today}`, date: today, taskIds, totalTasks: store.plan.tasks.length,
+    allDone: store.plan.tasks.every(t => t.done), note, createdAt: new Date().toISOString(),
   };
-
-  const allDone = store.plan.tasks.length > 0 && store.plan.tasks.every((t) => t.done);
-
-  return {
-    ...store,
-    plan: {
-      ...store.plan,
-      streak: allDone ? store.plan.streak + 1 : store.plan.streak,
-    },
-    checkIns: [record, ...store.checkIns].slice(0, 30),
-  };
+  const checkIns = [record, ...store.checkIns.filter(r => r.date !== today)].sort((a, b) => b.date.localeCompare(a.date));
+  return addMessage({ ...store, checkIns, plan: { ...store.plan, streak: calculateStreak(checkIns) } },
+    record.id, `${today} 打卡：完成 ${taskIds.length}/${record.totalTasks} 项。 ${note}`);
 }
-
 export function upsertScript(store: AppStore, script: ScriptItem): AppStore {
-  const exists = store.scripts.some((s) => s.id === script.id);
-  return {
-    ...store,
-    scripts: exists
-      ? store.scripts.map((s) => (s.id === script.id ? script : s))
-      : [script, ...store.scripts],
-  };
+  const old = store.scripts.find(s => s.id === script.id);
+  if (old && old.scene !== script.scene) return store;
+  if (store.scripts.some(s => s.id !== script.id && s.scene === script.scene)) return store;
+  return { ...store, scripts: old ? store.scripts.map(s => s.id === script.id ? script : s) : [...store.scripts, script] };
 }
-
 export function upsertRule(store: AppStore, rule: ReminderRule): AppStore {
-  const exists = store.rules.some((r) => r.id === rule.id);
-  return {
-    ...store,
-    rules: exists
-      ? store.rules.map((r) => (r.id === rule.id ? rule : r))
-      : [rule, ...store.rules],
-  };
+  return { ...store, rules: store.rules.some(r => r.id === rule.id)
+    ? store.rules.map(r => r.id === rule.id ? rule : r) : [...store.rules, rule] };
 }
-
 export function adjustPlanByProgress(store: AppStore): AppStore {
+  store = normalizeStore(store);
   if (!store.plan) return store;
-  const doneCount = store.plan.tasks.filter((t) => t.done).length;
-  const total = store.plan.tasks.length || 1;
-  const ratio = doneCount / total;
-
-  if (ratio >= 0.75) {
-    return {
-      ...store,
-      plan: {
-        ...store.plan,
-        tasks: store.plan.tasks.map((task) =>
-          task.done
-            ? task
-            : {
-                ...task,
-                title: task.title.includes("（加练）")
-                  ? task.title
-                  : `${task.title}（加练）`,
-                minutes: task.minutes + 10,
-              },
-        ),
-      },
-    };
-  }
-
-  if (ratio > 0 && ratio < 0.4) {
-    return {
-      ...store,
-      plan: {
-        ...store.plan,
-        tasks: store.plan.tasks.map((task) =>
-          task.done
-            ? task
-            : {
-                ...task,
-                title: task.title.replace("（加练）", "").replace("（精简）", "") + "（精简）",
-                minutes: Math.max(15, task.minutes - 10),
-              },
-        ),
-      },
-    };
-  }
-
-  return store;
+  const ratio = store.plan.tasks.filter(t => t.done).length / (store.plan.tasks.length || 1);
+  return { ...store, plan: { ...store.plan, tasks: store.plan.tasks.map(t => {
+    if (t.done) return t;
+    const mode = ratio >= .75 ? "加练" : ratio > 0 && ratio < .4 ? "精简" : "";
+    return { ...t, title: t.baseTitle + (mode ? `（${mode}）` : ""),
+      minutes: mode === "加练" ? t.baseMinutes + 10 : mode === "精简" ? Math.max(15, t.baseMinutes - 10) : t.baseMinutes };
+  }) } };
+}
+export function shouldTriggerRule(store: AppStore, rule: ReminderRule, now = new Date()): boolean {
+  return rule.enabled && /^([01]\d|2[0-3]):[0-5]\d$/.test(rule.time)
+    && beijingTime(now) >= rule.time && store.triggeredRules[rule.id] !== todayKey(now)
+    && (rule.scene !== "reminder" || !!store.plan?.tasks.some(t => !t.done));
+}
+export function triggerRule(store: AppStore, rule: ReminderRule, manual = false): AppStore {
+  store = normalizeStore(store);
+  const id = manual ? `manual-${crypto.randomUUID()}` : `rule-${rule.id}-${todayKey()}`;
+  if (!manual && !shouldTriggerRule(store, rule)) return store;
+  return addMessage({
+    ...store,
+    triggeredRules: manual ? store.triggeredRules : { ...store.triggeredRules, [rule.id]: todayKey() },
+    broadcasts: [...store.broadcasts, { id, scene: rule.scene, title: `${manual ? "手动试触发" : "到点提醒"} · ${rule.name}` }],
+  }, id, `${manual ? "手动试触发" : "北京时间到点提醒"}：${rule.name}（${rule.time}）`);
+}
+export function noticeKey(rule: ReminderRule): string { return JSON.stringify(rule); }
+export function updateVideoJob(store: AppStore, job: VideoJob): AppStore {
+  const previous = store.videoJobs.find(j => j.jobId === job.jobId);
+  const next = { ...store, videoJobs: [job, ...store.videoJobs.filter(j => j.jobId !== job.jobId)] };
+  return job.status === "completed" && job.url && previous?.status !== "completed"
+    ? addMessage(next, `video-${job.jobId}`, "数字人视频已生成并保存到本地，可播放匹配文案。") : next;
 }

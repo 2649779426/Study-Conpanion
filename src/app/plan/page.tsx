@@ -1,11 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { StudyStats } from "@/components/StudyStats";
+import { TaskMinutesEditor } from "@/components/TaskMinutesEditor";
 import { useToast } from "@/components/DemoToast";
 import { useAppStore } from "@/hooks/useAppStore";
 
 export default function PlanPage() {
-  const { store, ready, chooseTemplate, setUserName } = useAppStore();
+  const { store, ready, chooseTemplate, setUserName, updateTaskMinutes } =
+    useAppStore();
   const { show } = useToast();
   const [name, setName] = useState("");
 
@@ -21,7 +24,8 @@ export default function PlanPage() {
           <span className="linkish">可选方案</span>
         </div>
         <p className="lead">
-          选择计划模板生成今日任务。打卡进度会触发动态调整（加练 / 精简）。
+          选择计划模板生成今日任务。可手动调整每项时长，打卡进度会触发动态调整（加练
+          / 精简）。
         </p>
 
         <div className="field" style={{ marginTop: 14 }}>
@@ -66,34 +70,54 @@ export default function PlanPage() {
         </div>
       </section>
 
-      <section className="card purpleLight">
-        <div className="section-head">
-          <h2>当前计划</h2>
-          <span className="linkish">{store.plan?.startDate}</span>
-        </div>
-        {store.plan ? (
-          <>
-            <p className="lead">
-              {store.plan.name} · {store.plan.examTarget}
-            </p>
-            <div className="task-list" style={{ marginTop: 14 }}>
-              {store.plan.tasks.map((task) => (
-                <div key={task.id} className="task-item" style={{ cursor: "default" }}>
-                  <div>
-                    <b>{task.title}</b>
-                    <span className="muted" style={{ fontSize: 12 }}>
-                      {task.subject} · {task.minutes} 分钟
+      <div className="stack">
+        <StudyStats store={store} />
+
+        <section className="card purpleLight">
+          <div className="section-head">
+            <h2>当前计划</h2>
+            <span className="linkish">{store.plan?.startDate}</span>
+          </div>
+          {store.plan ? (
+            <>
+              <p className="lead">
+                {store.plan.name} · {store.plan.examTarget}
+              </p>
+              <p className="muted" style={{ fontSize: 12, marginTop: -4 }}>
+                可直接修改每项任务时长（5–480 分钟）
+              </p>
+              <div className="task-list" style={{ marginTop: 14 }}>
+                {store.plan.tasks.map((task) => (
+                  <div
+                    key={task.id}
+                    className="task-item"
+                    style={{ cursor: "default" }}
+                  >
+                    <div>
+                      <b>{task.title}</b>
+                      <span className="muted" style={{ fontSize: 12 }}>
+                        {task.subject}
+                      </span>
+                      <TaskMinutesEditor
+                        minutes={task.minutes}
+                        onChange={(m) => {
+                          updateTaskMinutes(task.id, m);
+                          show(`已调整「${task.title}」为 ${m} 分钟`);
+                        }}
+                      />
+                    </div>
+                    <span className={task.done ? "pill ok" : "pill"}>
+                      {task.done ? "完成" : "待办"}
                     </span>
                   </div>
-                  <span className={task.done ? "pill ok" : "pill"}>{task.done ? "完成" : "待办"}</span>
-                </div>
-              ))}
-            </div>
-          </>
-        ) : (
-          <p className="muted">还没有计划，请先选择模板。</p>
-        )}
-      </section>
+                ))}
+              </div>
+            </>
+          ) : (
+            <p className="muted">还没有计划，请先选择模板。</p>
+          )}
+        </section>
+      </div>
     </div>
   );
 }

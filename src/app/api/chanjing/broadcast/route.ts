@@ -122,23 +122,42 @@ export async function POST(request: Request) {
       "/list_common_audio?page=1&size=50",
     );
     const dpList = await chanjingFetch<{ list: DigitalPerson[] }>(
-      "/list_common_dp?page=1&size=20",
+      "/list_common_dp?page=1&size=50",
     );
-    const person =
-      (dpList.data.list || []).find((p) => p.name === "文昊") ||
-      pickMeaningful(dpList.data.list || []);
-    const figure =
-      (person.figures || []).find((f) => f.type && f.width && f.height) ||
-      person.figures?.[0];
+    const preferred = [
+      { name: "海城-休闲", figureType: "sit_body" },
+      { name: "文昊", figureType: "sit_body" },
+    ];
+    let person =
+      pickMeaningful(dpList.data.list || []) || (dpList.data.list || [])[0];
+    let figure =
+      (person?.figures || []).find((f) => f.type && f.width && f.height) ||
+      person?.figures?.[0];
+    for (const pref of preferred) {
+      const p = (dpList.data.list || []).find((x) => x.name === pref.name);
+      const f = (p?.figures || []).find(
+        (fig) => fig.type === pref.figureType && fig.width && fig.height,
+      );
+      if (p && f) {
+        person = p;
+        figure = f;
+        break;
+      }
+    }
     if (!figure?.type || !figure.width || !figure.height) {
       throw new Error("digital person figure incomplete");
     }
 
-    const voice =
-      person.audio_man_id
+    const youngVoice =
+      (audioList.data.list || []).find((a) => a.name === "轻快男声") ||
+      (audioList.data.list || []).find((a) => a.name === "专业小哥") ||
+      (audioList.data.list || []).find((a) => a.name === "科普男声");
+    const voice = youngVoice
+      ? { id: youngVoice.id, name: youngVoice.name }
+      : person.audio_man_id
         ? {
             id: person.audio_man_id,
-            name: person.audio_name || "avatar-default",
+            name: person.audio_name || "young-tutor",
           }
         : pickMeaningful(
             (audioList.data.list || []).filter((a) => a.gender === "male"),

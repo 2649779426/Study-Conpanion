@@ -48,6 +48,8 @@ export type CheckInRecord = {
   id: string;
   date: string;
   taskIds: string[];
+  /** 本次打卡对应的已完成任务总分钟数 */
+  minutes: number;
   note: string;
   createdAt: string;
 };

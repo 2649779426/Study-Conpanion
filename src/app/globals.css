@@ -746,11 +746,137 @@ select {
   margin-bottom: 4px;
 }
 
+.stats-mini {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.stats-mini-item {
+  background: #fff;
+  border-radius: 14px;
+  padding: 12px;
+  display: grid;
+  gap: 4px;
+}
+
+.stats-mini-item b {
+  font-size: 22px;
+  line-height: 1.1;
+}
+
+.progress-block {
+  margin-top: 14px;
+}
+
+.progress-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #6b7280;
+  margin-bottom: 6px;
+}
+
+.progress-track {
+  height: 10px;
+  border-radius: 999px;
+  background: #e5e7eb;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.35s ease;
+}
+
+.progress-fill.sky {
+  background: #38bdf8;
+}
+
+.progress-fill.purple {
+  background: #a78bfa;
+}
+
+.bar-chart {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+  align-items: end;
+  height: 120px;
+  margin-top: 18px;
+  margin-bottom: 8px;
+}
+
+.bar-col {
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+  height: 100%;
+}
+
+.bar-wrap {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.bar {
+  width: 70%;
+  max-width: 28px;
+  min-height: 4px;
+  border-radius: 8px 8px 4px 4px;
+  background: linear-gradient(180deg, #7dd3fc, #a78bfa);
+}
+
+.bar-col span {
+  font-size: 11px;
+  color: #6b7280;
+}
+
+.task-minutes {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.task-minutes input {
+  width: 64px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 4px 6px;
+  font-size: 12px;
+  background: #fff;
+}
+
+.task-minutes button {
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 8px;
+  width: 26px;
+  height: 26px;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.task-minutes button:hover {
+  background: var(--lama-sky-light);
+}
+
 @media (max-width: 1100px) {
   .stats-row {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .grid-main {
+    grid-template-columns: 1fr;
+  }
+  .stats-mini {
     grid-template-columns: 1fr;
   }
 }

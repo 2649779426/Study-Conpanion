@@ -160,7 +160,7 @@ async function main() {
 
   const scenes = {
     opening:
-      "同学你好，我是你的考研督学助手。今天按计划推进，先从英语阅读开始。打开任务，打卡跟上节奏，我们一起把今天拿下。",
+      "同学你好，我是你的考研督学学长。今天按计划推进，先从英语阅读开始。打开任务，打卡跟上节奏，我们一起把今天拿下。",
     reminder:
       "提醒一下：今天该完成英语单词与阅读任务了。别拖延，完成后记得打卡。坚持住，离目标又近一步。",
     review:
@@ -181,32 +181,48 @@ async function main() {
   const token = tokenJson.data.access_token;
 
   const audioList = await api("/list_common_audio?page=1&size=50", { token });
-  const dpList = await api("/list_common_dp?page=1&size=20", { token });
-  // Prefer a clearly male tutor-like avatar for 督学
-  const person =
-    (dpList.data.list || []).find((p) => p.name === "文昊") ||
-    pickMeaningful(dpList.data.list || []);
-  const figure =
-    (person.figures || []).find((f) => f.type && f.width && f.height) ||
-    person.figures?.[0];
+  const dpList = await api("/list_common_dp?page=1&size=50", { token });
+  // Younger 学长: prefer sit_body 海城-休闲 (stable) + young voice 轻快男声/专业小哥
+  // Avoid whole_body-only avatars that often fail video render on this account.
+  const preferred = [
+    { name: "海城-休闲", figureType: "sit_body" },
+    { name: "文昊", figureType: "sit_body" },
+  ];
+  let person = null;
+  let figure = null;
+  for (const pref of preferred) {
+    const p = (dpList.data.list || []).find((x) => x.name === pref.name);
+    const f = (p?.figures || []).find(
+      (fig) => fig.type === pref.figureType && fig.width && fig.height,
+    );
+    if (p && f) {
+      person = p;
+      figure = f;
+      break;
+    }
+  }
+  if (!person) person = pickMeaningful(dpList.data.list || []);
+  if (!figure) {
+    figure =
+      (person.figures || []).find((f) => f.type === "sit_body" && f.width && f.height) ||
+      (person.figures || []).find((f) => f.type && f.width && f.height) ||
+      person.figures?.[0];
+  }
   if (!figure?.type || !figure.width || !figure.height) {
     throw new Error("figure incomplete");
   }
 
-  // Match voice to avatar: use bundled audio_man_id first, else same-gender male voice
-  const bundledId = person.audio_man_id;
-  const voiceFromList = (audioList.data.list || []).find((a) => a.id === bundledId);
-  const maleFallback =
-    (audioList.data.list || []).find((a) => a.name === "知心学长") ||
-    (audioList.data.list || []).find((a) => a.gender === "male" && /学长|专家|精英|男/.test(a.name || "")) ||
-    (audioList.data.list || []).find((a) => a.gender === "male");
-  const voice = bundledId
-    ? {
-        id: bundledId,
-        name: person.audio_name || voiceFromList?.name || "avatar-default-male",
-      }
-    : maleFallback;
-  if (!voice?.id) throw new Error("no matching male voice");
+  const youngVoice =
+    (audioList.data.list || []).find((a) => a.name === "轻快男声") ||
+    (audioList.data.list || []).find((a) => a.name === "专业小哥") ||
+    (audioList.data.list || []).find((a) => a.name === "科普男声") ||
+    (audioList.data.list || []).find((a) => a.id === person.audio_man_id);
+  const voice = youngVoice
+    ? { id: youngVoice.id, name: youngVoice.name }
+    : person.audio_man_id
+      ? { id: person.audio_man_id, name: person.audio_name || "young-tutor" }
+      : null;
+  if (!voice?.id) throw new Error("no matching young voice");
 
   const results = [];
   for (const [scene, text] of entries) {

@@ -1,6 +1,6 @@
 import type { AppStore } from "./types";
 
-export const STORAGE_KEY = "kaoyan-duxue-store-v1";
+export const STORAGE_KEY = "kaoyan-duxue-store-v2";
 
 export function createSeedStore(): AppStore {
   const today = new Date().toISOString().slice(0, 10);
@@ -51,7 +51,7 @@ export function createSeedStore(): AppStore {
         scene: "opening",
         title: "开场陪伴",
         content:
-          "同学你好，我是你的考研督学助手。今天按计划推进，先从英语阅读开始。打开任务，打卡跟上节奏，我们一起把今天拿下。",
+          "同学你好，我是你的考研督学学长。今天按计划推进，先从英语阅读开始。打开任务，打卡跟上节奏，我们一起把今天拿下。",
         updatedAt: today,
       },
       {
@@ -109,7 +109,7 @@ export function createSeedStore(): AppStore {
         time: "08:30",
         scene: "opening",
         enabled: true,
-        note: "开始学习时播报开场话术",
+        note: "开始学习时播报开场寄语",
       },
       {
         id: "r2",

@@ -4,11 +4,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { DigitalHumanPlayer } from "@/components/DigitalHumanPlayer";
+import { StudyStats } from "@/components/StudyStats";
+import { TaskMinutesEditor } from "@/components/TaskMinutesEditor";
 import { useToast } from "@/components/DemoToast";
 import { useAppStore } from "@/hooks/useAppStore";
+import { formatHoursShort, todayDoneMinutes } from "@/lib/stats";
 
 export default function HomePage() {
-  const { store, ready, toggleTask } = useAppStore();
+  const { store, ready, toggleTask, updateTaskMinutes } = useAppStore();
   const router = useRouter();
   const { show } = useToast();
 
@@ -20,6 +23,7 @@ export default function HomePage() {
   const done = plan?.tasks.filter((t) => t.done).length ?? 0;
   const total = plan?.tasks.length ?? 0;
   const minutes = plan?.tasks.reduce((sum, t) => sum + t.minutes, 0) ?? 0;
+  const todayDone = todayDoneMinutes(store);
   const rate = total ? Math.round((done / total) * 100) : 0;
 
   return (
@@ -63,8 +67,8 @@ export default function HomePage() {
           }}
         >
           <Image className="more" src="/more.png" alt="" width={16} height={16} />
-          <div className="label">计划分钟</div>
-          <div className="value">{minutes}</div>
+          <div className="label">计划小时</div>
+          <div className="value">{formatHoursShort(minutes)}</div>
         </button>
         <button
           type="button"
@@ -72,12 +76,12 @@ export default function HomePage() {
           style={{ background: "var(--lama-sky-light)" }}
           onClick={() => {
             router.push("/checkin");
-            show(`当前完成率 ${rate}%`);
+            show(`今日已学 ${formatHoursShort(todayDone)} 小时 · 完成率 ${rate}%`);
           }}
         >
           <Image className="more" src="/more.png" alt="" width={16} height={16} />
-          <div className="label">完成率</div>
-          <div className="value">{rate}%</div>
+          <div className="label">今日已学</div>
+          <div className="value">{formatHoursShort(todayDone)}h</div>
         </button>
       </div>
 
@@ -101,10 +105,12 @@ export default function HomePage() {
                 调整计划
               </Link>
               <Link className="btn purple" href="/admin">
-                配置话术
+                寄语管理
               </Link>
             </div>
           </section>
+
+          <StudyStats store={store} />
 
           <section className="card purpleLight">
             <div className="section-head">
@@ -125,8 +131,15 @@ export default function HomePage() {
                   <div>
                     <b>{task.title}</b>
                     <span className="muted" style={{ fontSize: 12 }}>
-                      {task.subject} · {task.minutes} 分钟
+                      {task.subject}
                     </span>
+                    <TaskMinutesEditor
+                      minutes={task.minutes}
+                      onChange={(m) => {
+                        updateTaskMinutes(task.id, m);
+                        show(`已调整「${task.title}」为 ${m} 分钟`);
+                      }}
+                    />
                   </div>
                   <span className={task.done ? "pill ok" : "pill warn"}>
                     {task.done ? "已完成" : "待执行"}

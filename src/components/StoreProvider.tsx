@@ -15,6 +15,7 @@ import {
   saveStore,
   submitCheckIn,
   toggleTask,
+  updateTaskMinutes,
   upsertRule,
   upsertScript,
 } from "@/lib/store";
@@ -31,6 +32,7 @@ type StoreApi = {
   setUserName: (name: string) => void;
   chooseTemplate: (template: PlanTemplate, userName?: string) => void;
   toggleTask: (taskId: string) => void;
+  updateTaskMinutes: (taskId: string, minutes: number) => void;
   checkIn: (note: string) => void;
   saveScript: (script: ScriptItem) => void;
   saveRule: (rule: ReminderRule) => void;
@@ -65,6 +67,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       toggleTask(taskId: string) {
         if (!store) return;
         commit(toggleTask(store, taskId));
+      },
+      updateTaskMinutes(taskId: string, minutes: number) {
+        if (!store) return;
+        commit(updateTaskMinutes(store, taskId, minutes));
       },
       checkIn(note: string) {
         if (!store) return;

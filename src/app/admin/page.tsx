@@ -32,13 +32,13 @@ export default function AdminPage() {
     <div className="grid-main">
       <section className="card">
         <div className="section-head">
-          <h2>话术配置</h2>
-          <span className="linkish">话术</span>
+          <h2>寄语管理</h2>
+          <span className="linkish">陪伴文案</span>
         </div>
-        <p className="lead">配置开场、节点提醒、复盘总结播报文案。</p>
+        <p className="lead">管理开场、节点提醒、复盘总结的陪伴寄语。</p>
 
         <div className="field" style={{ marginTop: 12 }}>
-          <label>选择话术</label>
+          <label>选择寄语</label>
           <select
             value={scriptForm.id}
             onChange={(e) => {
@@ -81,7 +81,7 @@ export default function AdminPage() {
           />
         </div>
         <div className="field">
-          <label>播报内容</label>
+          <label>寄语内容</label>
           <textarea
             value={scriptForm.content}
             onChange={(e) =>
@@ -97,11 +97,11 @@ export default function AdminPage() {
               ...scriptForm,
               updatedAt: new Date().toISOString().slice(0, 10),
             });
-            setTip("话术已保存");
-            show("话术已保存");
+            setTip("寄语已保存");
+            show("寄语已保存");
           }}
         >
-          保存话术
+          保存寄语
         </button>
       </section>
 

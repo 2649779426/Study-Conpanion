@@ -2,12 +2,14 @@
 
 import { useState } from "react";
 import { DigitalHumanPlayer } from "@/components/DigitalHumanPlayer";
+import { StudyStats } from "@/components/StudyStats";
+import { TaskMinutesEditor } from "@/components/TaskMinutesEditor";
 import { useToast } from "@/components/DemoToast";
 import { useAppStore } from "@/hooks/useAppStore";
 import type { ScriptScene } from "@/lib/types";
 
 export default function CheckInPage() {
-  const { store, ready, toggleTask, checkIn } = useAppStore();
+  const { store, ready, toggleTask, checkIn, updateTaskMinutes } = useAppStore();
   const { show } = useToast();
   const [note, setNote] = useState("");
   const [message, setMessage] = useState("");
@@ -33,7 +35,7 @@ export default function CheckInPage() {
           </span>
         </div>
         <p className="lead">
-          勾选已完成任务并提交。系统会依据完成率动态调整后续任务强度。
+          勾选已完成任务并提交。可先调整任务时长，再打卡；系统会依据完成率动态调整后续任务强度。
         </p>
 
         <div className="task-list" style={{ marginTop: 14 }}>
@@ -50,8 +52,15 @@ export default function CheckInPage() {
               <div>
                 <b>{task.title}</b>
                 <span className="muted" style={{ fontSize: 12 }}>
-                  {task.subject} · {task.minutes} 分钟
+                  {task.subject}
                 </span>
+                <TaskMinutesEditor
+                  minutes={task.minutes}
+                  onChange={(m) => {
+                    updateTaskMinutes(task.id, m);
+                    show(`已调整「${task.title}」为 ${m} 分钟`);
+                  }}
+                />
               </div>
               <span className={task.done ? "pill ok" : "pill warn"}>
                 {task.done ? "已完成" : "点击完成"}
@@ -124,14 +133,17 @@ export default function CheckInPage() {
         )}
       </section>
 
-      <DigitalHumanPlayer
-        scripts={store.scripts}
-        userName={store.userName}
-        defaultScene="review"
-        autoPlay={false}
-        playSignal={playSignal}
-        companion
-      />
+      <div className="stack">
+        <StudyStats store={store} />
+        <DigitalHumanPlayer
+          scripts={store.scripts}
+          userName={store.userName}
+          defaultScene="review"
+          autoPlay={false}
+          playSignal={playSignal}
+          companion
+        />
+      </div>
     </div>
   );
 }

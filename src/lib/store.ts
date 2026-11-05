@@ -76,14 +76,35 @@ export function toggleTask(store: AppStore, taskId: string): AppStore {
   };
 }
 
+export function updateTaskMinutes(
+  store: AppStore,
+  taskId: string,
+  minutes: number,
+): AppStore {
+  if (!store.plan) return store;
+  const next = Math.max(5, Math.min(480, Math.round(minutes) || 5));
+  return {
+    ...store,
+    plan: {
+      ...store.plan,
+      tasks: store.plan.tasks.map((task) =>
+        task.id === taskId ? { ...task, minutes: next } : task,
+      ),
+    },
+  };
+}
+
 export function submitCheckIn(store: AppStore, note: string): AppStore {
   if (!store.plan) return store;
-  const doneIds = store.plan.tasks.filter((t) => t.done).map((t) => t.id);
+  const doneTasks = store.plan.tasks.filter((t) => t.done);
+  const doneIds = doneTasks.map((t) => t.id);
+  const minutes = doneTasks.reduce((sum, t) => sum + t.minutes, 0);
   const today = new Date().toISOString().slice(0, 10);
   const record: CheckInRecord = {
     id: `check-${Date.now()}`,
     date: today,
     taskIds: doneIds,
+    minutes,
     note,
     createdAt: new Date().toISOString(),
   };

@@ -55,3 +55,4 @@ __pycache__/
 /.data/
 /public/generated/
 !.env.example
+/output/

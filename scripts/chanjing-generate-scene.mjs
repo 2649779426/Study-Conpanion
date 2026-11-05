@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 
 const ROOT = resolve(import.meta.dirname, "..");
 const API_BASE = () => (process.env.CHANJING_API_BASE || "https://open-api.chanjing.cc/open/v1").replace(/\/$/, "");
-const OUT_DIR = resolve(ROOT, "../_codex/sample");
+const OUT_DIR = resolve(ROOT, "output", "sample");
 let journalPath;
 let journal;
 
@@ -149,14 +149,14 @@ async function main() {
   }
 
   const scene = process.argv[2];
-  if (!["opening", "review"].includes(scene) || process.argv.length !== 3) throw new Error("第五轮仅允许显式指定 opening 或 review；reminder 必须复用已有样片");
+  if (!["opening", "review"].includes(scene) || process.argv.length !== 3) throw new Error("仅允许显式指定 opening 或 review；reminder 必须复用已有样片");
   const output = resolve(OUT_DIR, `${scene}_xiaoyan.mp4`);
   journalPath = resolve(OUT_DIR, `${scene}_r5_generation.json`);
   if (existsSync(output) || existsSync(journalPath)) throw new Error("该场景已有文件或尝试记录，停止以免重复生成");
   for (const other of ["opening", "review"]) {
     const otherPath = resolve(OUT_DIR, `${other}_r5_generation.json`);
     if (existsSync(otherPath) && JSON.parse(readFileSync(otherPath, "utf8")).stage !== "completed") {
-      throw new Error("第五轮已有失败或未完成的尝试，停止全部生成，不重试");
+      throw new Error("已有失败或未完成的尝试，停止全部生成，不重试");
     }
   }
   const { getAvatarConfig } = await import("../src/lib/chanjing/avatar.ts");

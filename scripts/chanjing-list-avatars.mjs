@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import { spawnSync } from "node:child_process";
 
 const ROOT = resolve(import.meta.dirname, "..");
-const OUT = resolve(ROOT, "..", "_codex", "avatars");
+const OUT = resolve(ROOT, "output", "avatars");
 const API_BASE = "https://open-api.chanjing.cc/open/v1";
 const MAX_ITEMS = 200;
 const TIMEOUT_MS = 15_000;
@@ -101,7 +101,7 @@ async function main() {
       { path: sample, name: "头像样例一" },
       { path: sample, name: "头像样例二" },
     ], resolve(OUT, "test-contact.jpg"));
-    console.log(JSON.stringify({ contactSheetTest: ok, output: "../_codex/avatars/test-contact.jpg" }));
+    console.log(JSON.stringify({ contactSheetTest: ok, output: "output/avatars/test-contact.jpg" }));
     return;
   }
   if (process.argv.includes("--rebuild-contact")) {
@@ -119,7 +119,7 @@ async function main() {
       report = report.replace("- Contact sheet created:", "- Preview-related response fields observed: item.audio_preview; figures[].cover; figures[].preview_video_url\n- Cover field exported: figures[].cover\n- Contact sheet created:");
     }
     writeFileSync(reportPath, report, "utf8");
-    console.log(JSON.stringify({ contactSheet: ok, previews: entries.length, output: "../_codex/avatars/contact.jpg" }));
+    console.log(JSON.stringify({ contactSheet: ok, previews: entries.length, output: "output/avatars/contact.jpg" }));
     return;
   }
   const status = { ok: false, count: 0, apiTotal: null, previews: 0, contactSheet: false, errors: [] };
@@ -217,7 +217,7 @@ async function main() {
   writeFileSync(resolve(OUT, "REPORT.md"), [
     "# Avatar listing report", "", `- Result: ${status.ok ? "success" : "partial/failed"}`, `- Avatars exported: ${status.count}`, `- API total_count reported: ${status.apiTotal ?? "unavailable"}`, `- Preview images downloaded: ${status.previews}`, `- Contact sheet created: ${status.contactSheet ? "yes" : "no"}`, `- Preview-related response fields observed: item.audio_preview; figures[].cover; figures[].preview_video_url`, `- Figure preview fields exported: figures[].cover and figures[].preview_video_url`, `- Contact sheet scratch files: retained under avatars/contact-work-*`, `- API calls: /access_token and paginated /list_common_dp only`, `- Generation endpoints called: none`, `- Errors: ${status.errors.length ? status.errors.join("; ") : "none"}`, "",
   ].join("\n"), "utf8");
-  console.log(JSON.stringify({ ...status, outputDirectory: "../_codex/avatars" }));
+  console.log(JSON.stringify({ ...status, outputDirectory: "output/avatars" }));
 }
 
 main().catch(() => { process.exitCode = 1; });

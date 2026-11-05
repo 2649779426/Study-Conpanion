@@ -2,7 +2,7 @@ import { readFileSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const ROOT = resolve(import.meta.dirname, "..");
-const OUT = resolve(ROOT, "..", "_codex", "avatars");
+const OUT = resolve(ROOT, "output", "avatars");
 const TARGET_ID = "a6d13c6ccdf342d5a3f80a79218346e5";
 const PAGE_SIZE = 100;
 const TIMEOUT_MS = 15_000;

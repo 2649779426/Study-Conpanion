@@ -8,23 +8,16 @@ import { useAppStore } from "@/components/StoreProvider";
 import { useToast } from "@/components/DemoToast";
 
 const menu = [
-  {
-    title: "功能",
-    items: [
-      { href: "/", label: "今日督学", icon: "/home.png" },
-      { href: "/plan", label: "学习计划", icon: "/lesson.png" },
-      { href: "/checkin", label: "进度打卡", icon: "/attendance.png" },
-      { href: "/admin", label: "寄语管理", icon: "/setting.png" },
-    ],
-  },
-  {
-    title: "更多",
-    items: [
-      { href: "/plan", label: "我的档案", icon: "/profile.png" },
-      { href: "/admin", label: "提醒规则", icon: "/announcement.png" },
-    ],
-  },
+  { href: "/", label: "今日督学", icon: "/home.png", hint: "开场陪伴与今日任务" },
+  { href: "/plan", label: "学习计划", icon: "/lesson.png", hint: "模板与任务时长" },
+  { href: "/checkin", label: "进度打卡", icon: "/attendance.png", hint: "完成勾选与复盘" },
+  { href: "/admin", label: "寄语管理", icon: "/setting.png", hint: "陪伴文案与提醒" },
 ];
+
+function isActivePath(pathname: string, href: string) {
+  if (href === "/") return pathname === "/";
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -67,27 +60,28 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <span>督学数字人</span>
         </Link>
 
-        {menu.map((group) => (
-          <div key={group.title} className="menu-group">
-            <div className="menu-title">{group.title}</div>
-            {group.items.map((item) => {
-              const active =
-                item.href === "/"
-                  ? pathname === "/"
-                  : pathname.startsWith(item.href);
-              return (
-                <Link
-                  key={`${group.title}-${item.href}-${item.label}`}
-                  href={item.href}
-                  className={active ? "menu-link active" : "menu-link"}
-                >
+        <div className="menu-group">
+          <div className="menu-title">主导航</div>
+          {menu.map((item) => {
+            const active = isActivePath(pathname, item.href);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={active ? "menu-link active" : "menu-link"}
+                aria-current={active ? "page" : undefined}
+              >
+                <span className="menu-icon">
                   <Image src={item.icon} alt="" width={18} height={18} />
-                  <span>{item.label}</span>
-                </Link>
-              );
-            })}
-          </div>
-        ))}
+                </span>
+                <span className="menu-text">
+                  <span className="menu-label">{item.label}</span>
+                  <span className="menu-hint">{item.hint}</span>
+                </span>
+              </Link>
+            );
+          })}
+        </div>
       </aside>
 
       <div className="content">

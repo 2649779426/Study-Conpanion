@@ -414,38 +414,52 @@ select {
 .stats-row {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-  margin-bottom: 16px;
+  gap: 14px;
+  margin-bottom: 18px;
 }
 
 .stat-card {
-  border-radius: 16px;
-  padding: 14px;
+  border-radius: 18px;
+  padding: 16px 16px 14px;
   background: #fff;
   position: relative;
-  border: 0;
+  border: 1px solid transparent;
   width: 100%;
   text-align: left;
+  min-height: 108px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
 }
 
-.stat-card .more {
-  position: absolute;
-  right: 12px;
-  top: 12px;
-  width: 16px;
-  height: 16px;
-  opacity: 0.5;
+.stat-card .stat-kicker {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #334155;
+  opacity: 0.85;
+}
+
+.stat-card .stat-sub {
+  margin-top: 8px;
+  font-size: 11px;
+  color: #475569;
 }
 
 .stat-card .label {
-  font-size: 12px;
-  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 8px 0 4px;
 }
 
 .stat-card .value {
-  margin-top: 8px;
-  font-size: 28px;
-  font-weight: 700;
+  margin-top: 0;
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1;
+  color: #0f172a;
 }
 
 .section-head {
@@ -884,35 +898,44 @@ select {
   color: #6b7280;
 }
 
-.task-minutes {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  margin-top: 6px;
+.task-minutes-slider {
+  margin-top: 8px;
+  width: min(100%, 280px);
+  display: grid;
+  gap: 6px;
 }
 
-.task-minutes input {
-  width: 64px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 4px 6px;
-  font-size: 12px;
-  background: #fff;
-}
-
-.task-minutes button {
-  border: 1px solid var(--line);
-  background: #fff;
-  border-radius: 8px;
-  width: 26px;
-  height: 26px;
+.task-minutes-slider input[type="range"] {
+  width: 100%;
+  accent-color: #38bdf8;
   cursor: pointer;
-  font-size: 14px;
-  line-height: 1;
 }
 
-.task-minutes button:hover {
-  background: var(--lama-sky-light);
+.task-minutes-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.task-minutes-value {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f766e;
+}
+
+.task-minutes-reset {
+  border: 0;
+  background: transparent;
+  color: #64748b;
+  font-size: 11px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.task-minutes-reset:hover {
+  color: #0f172a;
+  text-decoration: underline;
 }
 
 @media (max-width: 1100px) {
@@ -944,11 +967,15 @@ select {
   .menu-title {
     display: none;
   }
-  .menu-link span {
+  .menu-link .menu-text {
     display: none;
   }
   .menu-link {
-    padding: 10px;
+    padding: 8px;
+    margin-bottom: 0;
+  }
+  .menu-link.active {
+    box-shadow: none;
   }
   .search-box {
     min-width: 0;

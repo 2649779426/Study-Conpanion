@@ -56,10 +56,7 @@ export default function CheckInPage() {
                 </span>
                 <TaskMinutesEditor
                   minutes={task.minutes}
-                  onChange={(m) => {
-                    updateTaskMinutes(task.id, m);
-                    show(`已调整「${task.title}」为 ${m} 分钟`);
-                  }}
+                  onChange={(m) => updateTaskMinutes(task.id, m)}
                 />
               </div>
               <span className={task.done ? "pill ok" : "pill warn"}>

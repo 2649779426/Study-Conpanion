@@ -84,7 +84,7 @@ export default function PlanPage() {
                 {store.plan.name} · {store.plan.examTarget}
               </p>
               <p className="muted" style={{ fontSize: 12, marginTop: -4 }}>
-                可直接修改每项任务时长（5–480 分钟）
+                左右滑动即可调整每项任务时长（5–480 分钟），下方会即时显示分钟数
               </p>
               <div className="task-list" style={{ marginTop: 14 }}>
                 {store.plan.tasks.map((task) => (
@@ -100,10 +100,7 @@ export default function PlanPage() {
                       </span>
                       <TaskMinutesEditor
                         minutes={task.minutes}
-                        onChange={(m) => {
-                          updateTaskMinutes(task.id, m);
-                          show(`已调整「${task.title}」为 ${m} 分钟`);
-                        }}
+                        onChange={(m) => updateTaskMinutes(task.id, m)}
                       />
                     </div>
                     <span className={task.done ? "pill ok" : "pill"}>

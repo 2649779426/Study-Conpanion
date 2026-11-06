@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { DigitalHumanPlayer } from "@/components/DigitalHumanPlayer";
@@ -28,20 +27,23 @@ export default function HomePage() {
 
   return (
     <>
-      <div className="stats-row">
+      <div className="stats-row" aria-label="今日学习概览">
         <button
           type="button"
           className="stat-card"
           style={{ background: "var(--lama-sky)" }}
           onClick={() => {
             router.push("/checkin");
-            show("查看今日完成进度");
+            show("进入进度打卡");
           }}
         >
-          <Image className="more" src="/more.png" alt="" width={16} height={16} />
-          <div className="label">今日完成</div>
-          <div className="value">
-            {done}/{total}
+          <span className="stat-kicker">打卡</span>
+          <div>
+            <div className="label">今日完成</div>
+            <div className="value">
+              {done}/{total}
+            </div>
+            <div className="stat-sub">完成率 {rate}%</div>
           </div>
         </button>
         <button
@@ -49,13 +51,15 @@ export default function HomePage() {
           className="stat-card"
           style={{ background: "var(--lama-purple)" }}
           onClick={() => {
-            router.push("/checkin");
-            show(`连续打卡 ${plan?.streak ?? 0} 天`);
+            show(`连续打卡 ${plan?.streak ?? 0} 天，继续保持`);
           }}
         >
-          <Image className="more" src="/more.png" alt="" width={16} height={16} />
-          <div className="label">连续打卡</div>
-          <div className="value">{plan?.streak ?? 0}</div>
+          <span className="stat-kicker">坚持</span>
+          <div>
+            <div className="label">连续打卡</div>
+            <div className="value">{plan?.streak ?? 0}</div>
+            <div className="stat-sub">天</div>
+          </div>
         </button>
         <button
           type="button"
@@ -63,25 +67,30 @@ export default function HomePage() {
           style={{ background: "var(--lama-yellow)" }}
           onClick={() => {
             router.push("/plan");
-            show("查看学习计划时长");
+            show("进入学习计划，可滑动调整时长");
           }}
         >
-          <Image className="more" src="/more.png" alt="" width={16} height={16} />
-          <div className="label">计划小时</div>
-          <div className="value">{formatHoursShort(minutes)}</div>
+          <span className="stat-kicker">计划</span>
+          <div>
+            <div className="label">计划时长</div>
+            <div className="value">{formatHoursShort(minutes)}</div>
+            <div className="stat-sub">小时 · 去调整任务</div>
+          </div>
         </button>
         <button
           type="button"
           className="stat-card"
           style={{ background: "var(--lama-sky-light)" }}
           onClick={() => {
-            router.push("/checkin");
-            show(`今日已学 ${formatHoursShort(todayDone)} 小时 · 完成率 ${rate}%`);
+            show(`今日已学 ${formatHoursShort(todayDone)} 小时`);
           }}
         >
-          <Image className="more" src="/more.png" alt="" width={16} height={16} />
-          <div className="label">今日已学</div>
-          <div className="value">{formatHoursShort(todayDone)}h</div>
+          <span className="stat-kicker">进度</span>
+          <div>
+            <div className="label">今日已学</div>
+            <div className="value">{formatHoursShort(todayDone)}</div>
+            <div className="stat-sub">小时</div>
+          </div>
         </button>
       </div>
 
@@ -135,10 +144,7 @@ export default function HomePage() {
                     </span>
                     <TaskMinutesEditor
                       minutes={task.minutes}
-                      onChange={(m) => {
-                        updateTaskMinutes(task.id, m);
-                        show(`已调整「${task.title}」为 ${m} 分钟`);
-                      }}
+                      onChange={(m) => updateTaskMinutes(task.id, m)}
                     />
                   </div>
                   <span className={task.done ? "pill ok" : "pill warn"}>

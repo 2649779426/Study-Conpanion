@@ -769,6 +769,27 @@ select {
   background: var(--lama-sky-light);
 }
 
+.template-card {
+  display: grid;
+  gap: 8px;
+}
+
+.template-actions {
+  padding-left: 2px;
+}
+
+.template-editor {
+  border: 1px dashed var(--line);
+  border-radius: 14px;
+  padding: 14px;
+  background: #fafafa;
+  margin-bottom: 4px;
+}
+
+.template-editor .section-head {
+  margin-bottom: 10px;
+}
+
 .table {
   width: 100%;
   border-collapse: collapse;

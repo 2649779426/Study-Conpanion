@@ -81,6 +81,69 @@ select {
   margin: 0 0 12px;
 }
 
+.incentive-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.incentive-item {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px;
+  display: grid;
+  gap: 4px;
+}
+
+.incentive-item b {
+  font-size: 28px;
+  line-height: 1.1;
+}
+
+.badge-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.milestone-badge {
+  border-radius: 14px;
+  border: 1px dashed #d1d5db;
+  background: #fff;
+  padding: 10px 8px;
+  text-align: center;
+  opacity: 0.55;
+  display: grid;
+  gap: 4px;
+}
+
+.milestone-badge.on {
+  opacity: 1;
+  border-style: solid;
+  border-color: #f59e0b;
+  background: linear-gradient(180deg, #fff7ed, #ffedd5);
+}
+
+.milestone-days {
+  font-size: 12px;
+  font-weight: 700;
+  color: #92400e;
+}
+
+.milestone-title {
+  font-size: 12px;
+  color: var(--ink);
+}
+
+@media (max-width: 720px) {
+  .incentive-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
 .sidebar {
   width: 16%;
   min-width: 180px;

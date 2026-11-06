@@ -12,16 +12,22 @@ const scenes: { value: ScriptScene; label: string }[] = [
 ];
 
 export default function AdminPage() {
-  const { store, ready, saveScript, saveRule } = useAppStore();
+  const { store, ready, saveScript, saveRule, updateSettings } = useAppStore();
   const { show } = useToast();
   const [scriptForm, setScriptForm] = useState<ScriptItem | null>(null);
   const [ruleForm, setRuleForm] = useState<ReminderRule | null>(null);
   const [tip, setTip] = useState("");
+  const [examDate, setExamDate] = useState("2026-12-19");
+  const [smsEnabled, setSmsEnabled] = useState(false);
+  const [smsTime, setSmsTime] = useState("14:00");
 
   useEffect(() => {
     if (!store) return;
     setScriptForm(store.scripts[0] ?? null);
     setRuleForm(store.rules[0] ?? null);
+    setExamDate(store.examDate || "2026-12-19");
+    setSmsEnabled(!!store.smsReminderEnabled);
+    setSmsTime(store.smsReminderTime || "14:00");
   }, [store]);
 
   if (!ready || !store || !scriptForm || !ruleForm) {
@@ -32,13 +38,63 @@ export default function AdminPage() {
     <div className="grid-main">
       <section className="card">
         <div className="section-head">
-          <h2>寄语管理</h2>
+          <h2>制定你的专属伴学</h2>
           <span className="linkish">陪伴文案</span>
         </div>
-        <p className="lead">管理开场、节点提醒、复盘总结的陪伴寄语。</p>
+        <p className="lead">
+          定制开场、节点提醒、复盘总结的专属陪伴话术，让督学更像为你准备的。
+        </p>
 
         <div className="field" style={{ marginTop: 12 }}>
-          <label>选择寄语</label>
+          <label>考研考试日</label>
+          <input
+            type="date"
+            value={examDate}
+            onChange={(e) => setExamDate(e.target.value)}
+          />
+        </div>
+        <div className="field">
+          <label>短信催学（到点未打开网页，发到注册手机号）</label>
+          <div className="row">
+            <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <input
+                type="checkbox"
+                checked={smsEnabled}
+                onChange={(e) => setSmsEnabled(e.target.checked)}
+              />
+              开启短信催学
+            </label>
+            <input
+              type="time"
+              value={smsTime}
+              onChange={(e) => setSmsTime(e.target.value)}
+              style={{ maxWidth: 140 }}
+            />
+          </div>
+          <p className="muted" style={{ fontSize: 12, margin: "6px 0 0" }}>
+            按北京时间判断。未配置短信通道时，会先写入服务器 outbox，便于联调。
+          </p>
+        </div>
+        <div className="row" style={{ marginBottom: 12 }}>
+          <button
+            type="button"
+            className="btn sky"
+            onClick={() => {
+              updateSettings({
+                examDate,
+                smsReminderEnabled: smsEnabled,
+                smsReminderTime: smsTime,
+              });
+              setTip("考试日与短信催学已保存");
+              show("考试日与短信催学已保存");
+            }}
+          >
+            保存激励 / 短信设置
+          </button>
+        </div>
+
+        <div className="field" style={{ marginTop: 12 }}>
+          <label>选择话术</label>
           <select
             value={scriptForm.id}
             onChange={(e) => {
@@ -81,7 +137,7 @@ export default function AdminPage() {
           />
         </div>
         <div className="field">
-          <label>寄语内容</label>
+          <label>话术内容</label>
           <textarea
             value={scriptForm.content}
             onChange={(e) =>
@@ -97,11 +153,11 @@ export default function AdminPage() {
               ...scriptForm,
               updatedAt: new Date().toISOString().slice(0, 10),
             });
-            setTip("寄语已保存");
-            show("寄语已保存");
+            setTip("伴学话术已保存");
+            show("伴学话术已保存");
           }}
         >
-          保存寄语
+          保存话术
         </button>
       </section>
 

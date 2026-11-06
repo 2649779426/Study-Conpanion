@@ -1,5 +1,7 @@
 import type { AppStore } from "./types";
 
+const MILESTONES = [3, 7, 14, 21, 30, 50, 100] as const;
+
 export function formatDuration(minutes: number): string {
   const m = Math.max(0, Math.round(minutes));
   if (m < 60) return `${m} 分钟`;
@@ -68,3 +70,61 @@ export function recentDailyMinutes(store: AppStore, days = 7): {
   }
   return result;
 }
+
+function dateKey(d: Date) {
+  return d.toISOString().slice(0, 10);
+}
+
+function checkedDates(store: AppStore) {
+  const set = new Set(store.checkIns.map((c) => c.date));
+  const today = dateKey(new Date());
+  const allDone =
+    !!store.plan?.tasks.length && store.plan.tasks.every((t) => t.done);
+  if (allDone) set.add(today);
+  return set;
+}
+
+/** 近 N 日有打卡天数 / N，返回 0–100 */
+export function persistenceRate(store: AppStore, days: number): number {
+  const set = checkedDates(store);
+  let hit = 0;
+  for (let i = 0; i < days; i += 1) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    if (set.has(dateKey(d))) hit += 1;
+  }
+  return Math.round((hit / days) * 100);
+}
+
+export function examCountdownDays(examDate: string): number {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const exam = new Date(`${examDate}T00:00:00`);
+  if (Number.isNaN(exam.getTime())) return 0;
+  const diff = Math.ceil((exam.getTime() - today.getTime()) / 86400000);
+  return Math.max(0, diff);
+}
+
+export type MilestoneBadge = {
+  days: number;
+  title: string;
+  earned: boolean;
+};
+
+export function milestoneBadges(streak: number): MilestoneBadge[] {
+  const titles: Record<number, string> = {
+    3: "初露锋芒",
+    7: "一周战士",
+    14: "两周坚盾",
+    21: "三周习惯",
+    30: "月度学霸",
+    50: "铁打自律",
+    100: "百日长征",
+  };
+  return MILESTONES.map((days) => ({
+    days,
+    title: titles[days] ?? `${days} 日勋章`,
+    earned: streak >= days,
+  }));
+}
+

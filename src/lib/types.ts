@@ -56,10 +56,20 @@ export type CheckInRecord = {
 
 export type AppStore = {
   userName: string;
+  /** 考研考试日 YYYY-MM-DD */
+  examDate: string;
   plan: StudyPlan | null;
   scripts: ScriptItem[];
   templates: PlanTemplate[];
   rules: ReminderRule[];
   checkIns: CheckInRecord[];
   lastBroadcastAt?: string;
+  /** 最近一次打开应用 ISO 时间 */
+  lastVisitAt?: string;
+  /** 是否开启短信催学 */
+  smsReminderEnabled: boolean;
+  /** 每日催学时间 HH:mm（北京时间） */
+  smsReminderTime: string;
+  /** 最近一次短信催学日期 YYYY-MM-DD */
+  smsLastSentDate?: string;
 };

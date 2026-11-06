@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { DigitalHumanPlayer } from "@/components/DigitalHumanPlayer";
+import { IncentivePanel } from "@/components/IncentivePanel";
 import { StudyStats } from "@/components/StudyStats";
 import { TaskMinutesEditor } from "@/components/TaskMinutesEditor";
 import { useToast } from "@/components/DemoToast";
@@ -114,10 +115,12 @@ export default function HomePage() {
                 调整计划
               </Link>
               <Link className="btn purple" href="/admin">
-                寄语管理
+                制定你的专属伴学
               </Link>
             </div>
           </section>
+
+          <IncentivePanel store={store} />
 
           <StudyStats store={store} />
 

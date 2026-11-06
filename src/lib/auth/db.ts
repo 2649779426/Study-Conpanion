@@ -101,6 +101,10 @@ export function writeUserStore(userId: string, store: AppStore) {
   writeJsonAtomic(storePath(userId), store);
 }
 
+export function listUsers() {
+  return readUsers().users;
+}
+
 export function isValidPhone(phone: string) {
   return /^1[3-9]\d{9}$/.test(phone);
 }

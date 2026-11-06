@@ -12,7 +12,7 @@ const menu = [
   { href: "/", label: "今日督学", icon: "/home.png", hint: "开场陪伴与今日任务" },
   { href: "/plan", label: "学习计划", icon: "/lesson.png", hint: "模板与任务时长" },
   { href: "/checkin", label: "进度打卡", icon: "/attendance.png", hint: "完成勾选与复盘" },
-  { href: "/admin", label: "寄语管理", icon: "/setting.png", hint: "陪伴文案与提醒" },
+  { href: "/admin", label: "制定你的专属伴学", icon: "/setting.png", hint: "陪伴文案与提醒" },
 ];
 
 function isActivePath(pathname: string, href: string) {
@@ -56,7 +56,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     });
     store.scripts.forEach((s) => {
       if (s.title.toLowerCase().includes(q) || s.content.toLowerCase().includes(q)) {
-        hits.push({ label: `寄语：${s.title}`, href: "/admin" });
+        hits.push({ label: `伴学：${s.title}`, href: "/admin" });
       }
     });
     store.templates.forEach((t) => {
@@ -114,7 +114,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     setQuery("");
                   }
                 }}
-                placeholder="搜索任务、寄语、计划模板… 回车跳转"
+                placeholder="搜索任务、伴学文案、计划模板… 回车跳转"
               />
             </div>
             {query.trim() ? (

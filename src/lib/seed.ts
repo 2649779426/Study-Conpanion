@@ -7,6 +7,9 @@ export function createSeedStore(): AppStore {
 
   return {
     userName: "同学",
+    examDate: "2026-12-19",
+    smsReminderEnabled: false,
+    smsReminderTime: "14:00",
     plan: {
       id: "plan-demo",
       templateId: "tpl-kaoyan-30",

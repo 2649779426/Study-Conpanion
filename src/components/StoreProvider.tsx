@@ -33,6 +33,17 @@ type StoreApi = {
   store: AppStore | null;
   ready: boolean;
   setUserName: (name: string) => void;
+  updateSettings: (
+    patch: Partial<
+      Pick<
+        AppStore,
+        | "examDate"
+        | "smsReminderEnabled"
+        | "smsReminderTime"
+        | "userName"
+      >
+    >,
+  ) => void;
   chooseTemplate: (template: PlanTemplate, userName?: string) => void;
   saveTemplate: (template: PlanTemplate) => void;
   removeTemplate: (templateId: string) => void;
@@ -50,39 +61,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [store, setStore] = useState<AppStore | null>(null);
   const [ready, setReady] = useState(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const visitMarked = useRef(false);
   const userId = user?.id ?? null;
-
-  useEffect(() => {
-    if (!authReady) return;
-    if (!userId) {
-      setStore(null);
-      setReady(false);
-      return;
-    }
-
-    let cancelled = false;
-    setReady(false);
-    (async () => {
-      try {
-        const res = await fetch("/api/user/data", { cache: "no-store" });
-        if (!res.ok) throw new Error("load failed");
-        const data = (await res.json()) as { store: AppStore };
-        if (!cancelled) {
-          setStore({ ...createSeedStore(), ...data.store });
-          setReady(true);
-        }
-      } catch {
-        if (!cancelled) {
-          setStore(createSeedStore());
-          setReady(true);
-        }
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [authReady, userId]);
 
   const persist = useCallback((next: AppStore) => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
@@ -103,6 +83,51 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     [persist],
   );
 
+  useEffect(() => {
+    if (!authReady) return;
+    if (!userId) {
+      setStore(null);
+      setReady(false);
+      visitMarked.current = false;
+      return;
+    }
+
+    let cancelled = false;
+    setReady(false);
+    visitMarked.current = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/user/data", { cache: "no-store" });
+        if (!res.ok) throw new Error("load failed");
+        const data = (await res.json()) as { store: AppStore };
+        if (cancelled) return;
+        const merged: AppStore = {
+          ...createSeedStore(),
+          ...data.store,
+          lastVisitAt: new Date().toISOString(),
+        };
+        setStore(merged);
+        setReady(true);
+        visitMarked.current = true;
+        persist(merged);
+      } catch {
+        if (!cancelled) {
+          const seed = {
+            ...createSeedStore(),
+            lastVisitAt: new Date().toISOString(),
+          };
+          setStore(seed);
+          setReady(true);
+          persist(seed);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authReady, userId, persist]);
+
   const api = useMemo<StoreApi>(
     () => ({
       store,
@@ -110,6 +135,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       setUserName(name: string) {
         if (!store) return;
         commit({ ...store, userName: name });
+      },
+      updateSettings(patch) {
+        if (!store) return;
+        commit({ ...store, ...patch });
       },
       chooseTemplate(template: PlanTemplate, userName?: string) {
         if (!store) return;

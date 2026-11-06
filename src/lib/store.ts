@@ -141,6 +141,26 @@ export function upsertRule(store: AppStore, rule: ReminderRule): AppStore {
   };
 }
 
+export function upsertTemplate(
+  store: AppStore,
+  template: PlanTemplate,
+): AppStore {
+  const exists = store.templates.some((t) => t.id === template.id);
+  return {
+    ...store,
+    templates: exists
+      ? store.templates.map((t) => (t.id === template.id ? template : t))
+      : [template, ...store.templates],
+  };
+}
+
+export function deleteTemplate(store: AppStore, templateId: string): AppStore {
+  return {
+    ...store,
+    templates: store.templates.filter((t) => t.id !== templateId),
+  };
+}
+
 export function adjustPlanByProgress(store: AppStore): AppStore {
   if (!store.plan) return store;
   const doneCount = store.plan.tasks.filter((t) => t.done).length;

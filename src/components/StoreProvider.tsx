@@ -11,6 +11,7 @@ import {
 import {
   adjustPlanByProgress,
   applyTemplate,
+  deleteTemplate,
   loadStore,
   saveStore,
   submitCheckIn,
@@ -18,6 +19,7 @@ import {
   updateTaskMinutes,
   upsertRule,
   upsertScript,
+  upsertTemplate,
 } from "@/lib/store";
 import type {
   AppStore,
@@ -31,6 +33,8 @@ type StoreApi = {
   ready: boolean;
   setUserName: (name: string) => void;
   chooseTemplate: (template: PlanTemplate, userName?: string) => void;
+  saveTemplate: (template: PlanTemplate) => void;
+  removeTemplate: (templateId: string) => void;
   toggleTask: (taskId: string) => void;
   updateTaskMinutes: (taskId: string, minutes: number) => void;
   checkIn: (note: string) => void;
@@ -63,6 +67,14 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       chooseTemplate(template: PlanTemplate, userName?: string) {
         if (!store) return;
         commit(applyTemplate(store, template, userName));
+      },
+      saveTemplate(template: PlanTemplate) {
+        if (!store) return;
+        commit(upsertTemplate(store, template));
+      },
+      removeTemplate(templateId: string) {
+        if (!store) return;
+        commit(deleteTemplate(store, templateId));
       },
       toggleTask(taskId: string) {
         if (!store) return;

@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
+import { useAuth } from "@/components/AuthProvider";
 import { useAppStore } from "@/components/StoreProvider";
 import { useToast } from "@/components/DemoToast";
 
@@ -23,14 +24,24 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { store, ready } = useAppStore();
+  const { user, logout } = useAuth();
   const { show } = useToast();
   const [query, setQuery] = useState("");
   const [panel, setPanel] = useState<"message" | "notice" | null>(null);
 
   const userName = ready && store ? store.userName : "同学";
+  const phoneLabel = user?.phone
+    ? `${user.phone.slice(0, 3)}****${user.phone.slice(-4)}`
+    : "考研学员";
 
   function openPanel(next: "message" | "notice") {
     setPanel((prev) => (prev === next ? null : next));
+  }
+
+  async function handleLogout() {
+    await logout();
+    show("已退出登录");
+    router.replace("/login");
   }
 
   const searchHits = useMemo(() => {
@@ -157,9 +168,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             >
               <div className="meta">
                 <b>{userName}</b>
-                <span>考研学员</span>
+                <span>{phoneLabel}</span>
               </div>
               <Image src="/avatar.png" alt="avatar" width={36} height={36} />
+            </button>
+            <button type="button" className="btn ghost" onClick={handleLogout}>
+              退出
             </button>
           </div>
         </header>

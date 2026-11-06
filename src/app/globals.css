@@ -56,6 +56,31 @@ select {
   min-height: 100vh;
 }
 
+.auth-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(195, 235, 250, 0.7), transparent 40%),
+    radial-gradient(circle at 80% 10%, rgba(207, 206, 255, 0.7), transparent 35%),
+    var(--bg);
+}
+
+.auth-card {
+  width: min(100%, 420px);
+}
+
+.auth-error {
+  color: #b91c1c;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 13px;
+  margin: 0 0 12px;
+}
+
 .sidebar {
   width: 16%;
   min-width: 180px;

@@ -1,3 +1,5 @@
+> 详细情况加我微信聊：15085785706，不懂的问我
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started

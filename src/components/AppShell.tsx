@@ -3,9 +3,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAppStore } from "@/components/StoreProvider";
 import { useToast } from "@/components/DemoToast";
+
+const NOTICE_READ_KEY = "kaoyan-duxue-notices-read";
 
 const menu = [
   { href: "/", label: "今日督学", icon: "/home.png", hint: "开场陪伴与今日任务" },
@@ -19,6 +21,25 @@ function isActivePath(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
+function readFlag(key: string) {
+  if (typeof window === "undefined") return false;
+  try {
+    return window.localStorage.getItem(key) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function writeFlag(key: string, value: boolean) {
+  if (typeof window === "undefined") return;
+  try {
+    if (value) window.localStorage.setItem(key, "1");
+    else window.localStorage.removeItem(key);
+  } catch {
+    /* ignore */
+  }
+}
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -26,8 +47,29 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { show } = useToast();
   const [query, setQuery] = useState("");
   const [panel, setPanel] = useState<"message" | "notice" | null>(null);
+  const [noticesRead, setNoticesRead] = useState(false);
+
+  useEffect(() => {
+    setNoticesRead(readFlag(NOTICE_READ_KEY));
+  }, []);
 
   const userName = ready && store ? store.userName : "同学";
+  const noticeCount = store?.rules.filter((r) => r.enabled).length ?? 0;
+  const unreadNotices = noticesRead ? 0 : noticeCount;
+
+  function openPanel(next: "message" | "notice") {
+    setPanel((prev) => (prev === next ? null : next));
+    if (next === "notice") {
+      setNoticesRead(true);
+      writeFlag(NOTICE_READ_KEY, true);
+    }
+  }
+
+  function markNoticesRead() {
+    setNoticesRead(true);
+    writeFlag(NOTICE_READ_KEY, true);
+    show("公告已全部已读");
+  }
 
   const searchHits = useMemo(() => {
     if (!store || !query.trim()) return [];
@@ -131,7 +173,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               type="button"
               className="icon-btn"
               aria-label="消息"
-              onClick={() => setPanel(panel === "message" ? null : "message")}
+              onClick={() => openPanel("message")}
             >
               <Image src="/message.png" alt="" width={16} height={16} />
             </button>
@@ -139,10 +181,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               type="button"
               className="icon-btn"
               aria-label="公告"
-              onClick={() => setPanel(panel === "notice" ? null : "notice")}
+              onClick={() => openPanel("notice")}
             >
               <Image src="/announcement.png" alt="" width={16} height={16} />
-              <span className="badge-dot">3</span>
+              {unreadNotices > 0 ? (
+                <span className="badge-dot">{unreadNotices}</span>
+              ) : null}
             </button>
             <button
               type="button"
@@ -165,13 +209,24 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="demo-panel">
             <div className="section-head">
               <h2>{panel === "message" ? "督学消息" : "提醒公告"}</h2>
-              <button
-                type="button"
-                className="linkish"
-                onClick={() => setPanel(null)}
-              >
-                关闭
-              </button>
+              <div className="row">
+                {panel === "notice" ? (
+                  <button
+                    type="button"
+                    className="linkish"
+                    onClick={markNoticesRead}
+                  >
+                    全部已读
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  className="linkish"
+                  onClick={() => setPanel(null)}
+                >
+                  关闭
+                </button>
+              </div>
             </div>
             {panel === "message" ? (
               <>
